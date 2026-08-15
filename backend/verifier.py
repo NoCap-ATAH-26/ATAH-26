@@ -134,7 +134,7 @@ def verify_document(
     """Verify a single repaired document. Publishes it if it passes."""
     repaired_path = REPAIRED_DOCUMENTS_DIR / file_name
     if not repaired_path.exists():
-        return {
+        missing = {
             "file_name": file_name,
             "status": "quarantined",
             "published_path": None,
@@ -145,6 +145,8 @@ def verify_document(
             "source_files": [],
             "reason": "Verifier cannot check a repair that doesn't exist yet.",
         }
+        inspector.audit_log.log_event(file_name, "verifier", missing)
+        return missing
 
     repaired_text = repaired_path.read_text(encoding="utf-8")
     prompt = build_verify_prompt(file_name, repaired_text, sources)
@@ -182,6 +184,7 @@ def verify_document(
         shutil.copyfile(repaired_path, published_path)
         result["published_path"] = str(published_path.relative_to(PROJECT_ROOT))
 
+    inspector.audit_log.log_event(file_name, "verifier", result)
     return result
 
 

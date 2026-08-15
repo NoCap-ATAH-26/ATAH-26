@@ -16,6 +16,7 @@ Usage:
 import argparse
 import json
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -23,6 +24,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+
+import audit_log
 
 load_dotenv()
 
@@ -40,6 +43,7 @@ BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BACKEND_DIR.parent
 APPROVED_SOURCES_DIR = PROJECT_ROOT / "approved_sources"
 INCOMING_DOCUMENTS_DIR = PROJECT_ROOT / "incoming_docs"
+PUBLISHED_DOCUMENTS_DIR = PROJECT_ROOT / "published_documents"
 
 VALID_STATUSES = {"approved", "needs_repair", "quarantined"}
 
@@ -164,6 +168,18 @@ def inspect_document(file_name: str, client: genai.Client, sources: dict[str, st
         raise ValueError(
             f"Inspector cited unknown source file(s) for {file_name}: {unknown_sources}"
         )
+
+    # A document that's already correct doesn't need to go through Repair
+    # and Verifier to be published, publish it as-is. needs_repair and
+    # quarantined documents are NOT published here; Repair/Verifier own that.
+    result["published_path"] = None
+    if result["status"] == "approved":
+        PUBLISHED_DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
+        published_path = PUBLISHED_DOCUMENTS_DIR / file_name
+        shutil.copyfile(incoming_path, published_path)
+        result["published_path"] = str(published_path.relative_to(PROJECT_ROOT))
+
+    audit_log.log_event(file_name, "inspector", result)
 
     return result
 

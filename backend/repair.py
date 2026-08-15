@@ -138,7 +138,7 @@ def repair_document(
         time.sleep(delay_seconds)
 
     if inspection["status"] != "needs_repair":
-        return {
+        refusal = {
             "file_name": file_name,
             "status": "quarantined",
             "repaired_text_path": None,
@@ -150,6 +150,8 @@ def repair_document(
                 f"({inspection.get('reason', '')})"
             ),
         }
+        inspector.audit_log.log_event(file_name, "repair", refusal)
+        return refusal
 
     incoming_path = inspector.INCOMING_DOCUMENTS_DIR / file_name
     incoming_text = incoming_path.read_text(encoding="utf-8")
@@ -182,7 +184,7 @@ def repair_document(
     out_path = REPAIRED_DOCUMENTS_DIR / file_name
     out_path.write_text(repair_result["repaired_text"], encoding="utf-8")
 
-    return {
+    outcome = {
         "file_name": file_name,
         "status": "repaired",
         "repaired_text_path": str(out_path.relative_to(PROJECT_ROOT)),
@@ -190,6 +192,8 @@ def repair_document(
         "changes_made": repair_result["changes_made"],
         "reason": repair_result["reason"],
     }
+    inspector.audit_log.log_event(file_name, "repair", outcome)
+    return outcome
 
 
 def run(file_names: list[str], delay_seconds: float = RATE_LIMIT_DELAY_SECONDS) -> list[dict]:
