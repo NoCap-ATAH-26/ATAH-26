@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Playfair_Display, JetBrains_Mono, Baloo_2 } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ScrollProgressBar } from "@/components/ScrollProgressBar";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -47,7 +48,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         "font-sans",
       )}
     >
-      <body className="min-h-full flex flex-col bg-bg text-ink">{children}</body>
+      <body className="min-h-full flex flex-col bg-bg text-ink">
+        <ScrollProgressBar />
+        {children}
+      </body>
     </html>
   );
 }

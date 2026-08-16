@@ -5,20 +5,29 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --color-bg: #0a0e2e;
-  --color-surface: #131a4a;
-  --color-surface-2: #1c2566;
-  --color-ink: #ffffff;
-  --color-ink-muted: #a3aee0;
-  --color-ink-faint: #6670a8;
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-border-strong: rgba(255, 255, 255, 0.18);
+  /* Palette: Aquamarine #8BE8CB, Cool Steel #7EA2AA, Lavender Grey #888DA7,
+     Dusty Mauve #9C7A97. Base is true black (not Gunmetal — reads too grey),
+     surfaces computed as color-mix off that black so every tier stays tied to it. */
+  --color-bg: #000000;
+  --color-surface: color-mix(in srgb, #000000 88%, white 12%);
+  --color-surface-2: color-mix(in srgb, #000000 78%, white 22%);
+  --color-ink: #f4f7f5;
+  --color-ink-muted: color-mix(in srgb, #888da7 78%, white 22%);
+  --color-ink-faint: color-mix(in srgb, #7ea2aa 70%, var(--color-bg) 30%);
+  --color-border: color-mix(in srgb, #888da7 22%, transparent);
+  --color-border-strong: color-mix(in srgb, #888da7 38%, transparent);
 
   /* Brand — reserved for hero/accent/decoration, never for status meaning.
      Named accent-lime (not "accent" or "lime") to avoid colliding with
-     shadcn's own semantic --accent token and Tailwind's built-in lime scale. */
-  --color-accent-lime: #d4f542;
-  --color-accent-lime-dim: #8ba82a;
+     shadcn's own semantic --accent token and Tailwind's built-in lime scale.
+     Holds Aquamarine now, kept the "-lime" name since it's threaded through
+     every component's Tailwind classes (bg-accent-lime, text-accent-lime, ...). */
+  --color-accent-lime: #8be8cb;
+  --color-accent-lime-dim: #6baa96;
+
+  /* Secondary brand accent — Dusty Mauve, for the wordmark gradient and other
+     spots that want a second brand hue instead of pure Aquamarine. */
+  --color-accent-mauve: #9c7a97;
 
   /* Status — fixed, validated for CVD-safety, never themed, never reused as decoration */
   --color-status-good: #0ca30c;
@@ -64,6 +73,7 @@
 
   --color-accent-lime: var(--color-accent-lime);
   --color-accent-lime-dim: var(--color-accent-lime-dim);
+  --color-accent-mauve: var(--color-accent-mauve);
 
   --color-status-good: var(--color-status-good);
   --color-status-warning: var(--color-status-warning);
@@ -131,7 +141,7 @@ body {
 .glow-brand {
   box-shadow:
     0 0 0 1px var(--color-border),
-    0 0 40px -12px rgba(212, 245, 66, 0.35);
+    0 0 40px -12px color-mix(in srgb, var(--color-accent-lime) 35%, transparent);
 }
 
 .grain-bg {
@@ -185,19 +195,72 @@ body {
   color: var(--color-bg);
 }
 
-/* Custom scrollbar, dark-consistent */
+/* Drum tunnel scroll — the wrapped sections read like you're sitting at the
+   center of a drum while it turns past you: every section on screen curves
+   away above and below at once (each gets its own perspective via GSAP's
+   transformPerspective, driven every scroll frame by JS), flattening only
+   right at viewport-center. The radial vignette frames the content like a
+   round tube opening; the ring pattern behind it reads as the drum's ribs. */
+.drum-tunnel {
+  position: relative;
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.drum-tunnel > section {
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+}
+
+.drum-tunnel__canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.drum-tunnel.in-view .drum-tunnel__canvas {
+  opacity: 0.55;
+}
+
+.drum-tunnel__vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  background:
+    radial-gradient(ellipse 78% 68% at 50% 50%, transparent 55%, var(--color-bg) 108%),
+    linear-gradient(to bottom, var(--color-bg) 0%, transparent 10%, transparent 90%, var(--color-bg) 100%);
+}
+
+.drum-tunnel.in-view .drum-tunnel__vignette {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drum-tunnel > section {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .drum-tunnel__vignette,
+  .drum-tunnel__canvas {
+    display: none;
+  }
+}
+
+/* Native scrollbar hidden — ScrollProgressBar is the only visible scroll indicator */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
 ::-webkit-scrollbar {
-  width: 10px;
-}
-::-webkit-scrollbar-track {
-  background: var(--color-bg);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-surface-2);
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-border-strong);
+  display: none;
 }
 
 @layer base {

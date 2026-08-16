@@ -1,38 +1,35 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAuditLog } from "@/hooks/useAuditLog";
 import { initReducedMotion } from "@/lib/motion-setup";
+import { initSmoothScroll } from "@/lib/smooth-scroll";
 import { Hero } from "@/components/Hero";
-import { StatTiles } from "@/components/StatTiles";
-import { PipelineStrip } from "@/components/PipelineStrip";
-import { ScoreChart } from "@/components/ScoreChart";
-import { ActivityFeed } from "@/components/ActivityFeed";
-import { DocumentViewer } from "@/components/DocumentViewer";
+import { ProblemSection } from "@/components/ProblemSection";
+import { HowItWorks } from "@/components/HowItWorks";
+import { FeaturesGrid } from "@/components/FeaturesGrid";
+import { CTASection } from "@/components/CTASection";
+import { SectionBlend } from "@/components/SectionBlend";
+import { DrumTunnel } from "@/components/DrumTunnel";
 
 export default function Home() {
-  const { rows, connected } = useAuditLog();
   useEffect(() => {
     initReducedMotion();
+    initSmoothScroll();
   }, []);
 
   return (
     <main className="flex-1">
-      <Hero connected={connected} />
-
-      <section className="mx-auto max-w-6xl px-6 pb-32">
-        <div className="space-y-8">
-          <StatTiles rows={rows} />
-          <PipelineStrip rows={rows} />
-
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.4fr_1fr]">
-            <ScoreChart rows={rows} />
-            <ActivityFeed rows={rows} />
-          </div>
-
-          <DocumentViewer rows={rows} />
-        </div>
-      </section>
+      <Hero />
+      <SectionBlend />
+      <DrumTunnel>
+        <ProblemSection />
+        <SectionBlend />
+        <HowItWorks />
+        <SectionBlend />
+        <FeaturesGrid />
+      </DrumTunnel>
+      <SectionBlend />
+      <CTASection />
 
       <footer className="border-t border-border px-6 py-8 text-center font-mono text-[11px] text-ink-faint">
         NoCap — Taskmaster track, All Things Agentic Hackathon
