@@ -5,7 +5,7 @@ Takes a document that Repair Agent has already corrected and checks it
 against the official approved policy sources ONE MORE TIME before it is
 allowed to be marked approved. This is the final gate in the pipeline:
 
-    Inspector -> Repair -> Verifier -> Firestore
+    Inspector -> Repair -> Verifier -> published_documents/ (logged to Supabase)
 
 For each file it:
 1. Reads the corrected version from repaired_documents/<file_name>.

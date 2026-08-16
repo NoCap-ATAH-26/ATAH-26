@@ -93,3 +93,19 @@ def log_event(file_name: str, stage: str, result: dict) -> None:
         client.table(_table).insert(row).execute()
     except Exception as exc:  # noqa: BLE001
         print(f"[audit_log] failed to write event for {file_name} ({stage}): {exc}", file=sys.stderr)
+
+
+def already_ingested_files() -> set[str]:
+    """File names that have already been through Inspector at least once.
+    Returns an empty set (fails open, not closed) if Supabase isn't reachable,
+    so a logging outage never blocks new documents from being processed."""
+    client = _get_client()
+    if client is None:
+        return set()
+
+    try:
+        resp = client.table(_table).select("file_name").eq("stage", "inspector").execute()
+        return {row["file_name"] for row in resp.data}
+    except Exception as exc:  # noqa: BLE001
+        print(f"[audit_log] failed to read already-ingested files: {exc}", file=sys.stderr)
+        return set()
