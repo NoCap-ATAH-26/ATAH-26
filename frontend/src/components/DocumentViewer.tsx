@@ -92,7 +92,7 @@ export function DocumentViewer({ rows }: { rows: AuditLogRow[] }) {
                 <ul className="mt-2 space-y-1.5">
                   {(active.changes_made ?? active.issues ?? active.remaining_issues ?? []).map((item, i) => (
                     <li key={i} className="flex gap-2 text-sm text-ink-muted">
-                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-brand-pink" />
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent-lime" />
                       {item}
                     </li>
                   ))}

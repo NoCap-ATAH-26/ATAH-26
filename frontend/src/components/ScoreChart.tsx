@@ -100,8 +100,8 @@ export function ScoreChart({ rows }: { rows: AuditLogRow[] }) {
           <AreaChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="riskFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-brand-pink)" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="var(--color-brand-pink)" stopOpacity={0} />
+                <stop offset="0%" stopColor="var(--color-accent-lime)" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="var(--color-accent-lime)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
@@ -117,7 +117,7 @@ export function ScoreChart({ rows }: { rows: AuditLogRow[] }) {
             <Area
               type="monotone"
               dataKey="risk_score"
-              stroke="var(--color-brand-pink)"
+              stroke="var(--color-accent-lime)"
               strokeWidth={2}
               fill="url(#riskFill)"
               dot={CustomDot}

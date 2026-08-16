@@ -75,7 +75,7 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
         {stages.map((s, i) => (
           <div key={s.key} className="flex items-center gap-2">
             <div className="pipeline-node flex w-32 flex-col items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 py-5">
-              <s.icon size={20} className="text-brand-pink" />
+              <s.icon size={20} className="text-accent-lime" />
               <span className="font-mono text-2xl tabular-nums">{s.count}</span>
               <span className="text-[11px] text-ink-muted">{s.label}</span>
             </div>
@@ -85,7 +85,7 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
                   className="flow-pulse h-[2px] w-10"
                   style={{
                     backgroundImage:
-                      "linear-gradient(90deg, var(--color-border) 0%, var(--color-brand-pink) 50%, var(--color-border) 100%)",
+                      "linear-gradient(90deg, var(--color-border) 0%, var(--color-accent-lime) 50%, var(--color-border) 100%)",
                     backgroundSize: "200% 100%",
                   }}
                 />
