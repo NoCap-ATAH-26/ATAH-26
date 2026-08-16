@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ChevronDown, ShieldCheck } from "lucide-react";
+import { ChainBackground } from "./ChainBackground";
 
 export function Hero({ connected }: { connected: boolean }) {
   const scope = useRef<HTMLDivElement>(null);
@@ -42,6 +43,7 @@ export function Hero({ connected }: { connected: boolean }) {
       ref={scope}
       className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 grain-bg"
     >
+      <ChainBackground />
       <div
         className="hero-blob-a pointer-events-none absolute -left-32 top-1/4 h-[520px] w-[520px] rounded-full opacity-40 blur-[110px]"
         style={{ background: "radial-gradient(circle, var(--color-brand-pink), transparent 70%)" }}
