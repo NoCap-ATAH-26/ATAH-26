@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { AuditLogRow } from "@/lib/types";
 
 export function useAuditLog() {
+  const supabase = useMemo(() => createClient(), []);
   const [rows, setRows] = useState<AuditLogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
@@ -43,7 +44,7 @@ export function useAuditLog() {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [supabase]);
 
   return { rows, loading, connected };
 }

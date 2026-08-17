@@ -5,20 +5,29 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --color-bg: #0a0e2e;
-  --color-surface: #131a4a;
-  --color-surface-2: #1c2566;
-  --color-ink: #ffffff;
-  --color-ink-muted: #a3aee0;
-  --color-ink-faint: #6670a8;
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-border-strong: rgba(255, 255, 255, 0.18);
+  /* Palette: Aquamarine #8BE8CB, Cool Steel #7EA2AA, Lavender Grey #888DA7,
+     Dusty Mauve #9C7A97. Base is true black (not Gunmetal — reads too grey),
+     surfaces computed as color-mix off that black so every tier stays tied to it. */
+  --color-bg: #000000;
+  --color-surface: color-mix(in srgb, #000000 88%, white 12%);
+  --color-surface-2: color-mix(in srgb, #000000 78%, white 22%);
+  --color-ink: #f4f7f5;
+  --color-ink-muted: color-mix(in srgb, #888da7 78%, white 22%);
+  --color-ink-faint: color-mix(in srgb, #7ea2aa 70%, var(--color-bg) 30%);
+  --color-border: color-mix(in srgb, #888da7 22%, transparent);
+  --color-border-strong: color-mix(in srgb, #888da7 38%, transparent);
 
   /* Brand — reserved for hero/accent/decoration, never for status meaning.
      Named accent-lime (not "accent" or "lime") to avoid colliding with
-     shadcn's own semantic --accent token and Tailwind's built-in lime scale. */
-  --color-accent-lime: #d4f542;
-  --color-accent-lime-dim: #8ba82a;
+     shadcn's own semantic --accent token and Tailwind's built-in lime scale.
+     Holds Aquamarine now, kept the "-lime" name since it's threaded through
+     every component's Tailwind classes (bg-accent-lime, text-accent-lime, ...). */
+  --color-accent-lime: #8be8cb;
+  --color-accent-lime-dim: #6baa96;
+
+  /* Secondary brand accent — Dusty Mauve, for the wordmark gradient and other
+     spots that want a second brand hue instead of pure Aquamarine. */
+  --color-accent-mauve: #9c7a97;
 
   /* Status — fixed, validated for CVD-safety, never themed, never reused as decoration */
   --color-status-good: #0ca30c;
@@ -64,6 +73,7 @@
 
   --color-accent-lime: var(--color-accent-lime);
   --color-accent-lime-dim: var(--color-accent-lime-dim);
+  --color-accent-mauve: var(--color-accent-mauve);
 
   --color-status-good: var(--color-status-good);
   --color-status-warning: var(--color-status-warning);
@@ -131,7 +141,7 @@ body {
 .glow-brand {
   box-shadow:
     0 0 0 1px var(--color-border),
-    0 0 40px -12px rgba(212, 245, 66, 0.35);
+    0 0 40px -12px color-mix(in srgb, var(--color-accent-lime) 35%, transparent);
 }
 
 .grain-bg {
@@ -185,19 +195,66 @@ body {
   color: var(--color-bg);
 }
 
-/* Custom scrollbar, dark-consistent */
-::-webkit-scrollbar {
-  width: 10px;
+/* 3D tunnel scroll — camera stays fixed at the cylinder's axis; scroll
+   drives the Three.js tunnel (translate + rotate) around it instead. Each
+   wrapped section is a real DOM panel whose screen position/scale/opacity
+   is recomputed every frame from its 3D anchor (see TunnelExperience +
+   lib/tunnel/scene.ts), so text stays crisp while still reading as part of
+   the 3D space. `.tunnel-root` needs real height — its own children are all
+   position:fixed and contribute nothing to layout — so ScrollTrigger's
+   pin has scroll distance to scrub across. */
+.tunnel-root {
+  position: relative;
+  height: 100vh;
 }
-::-webkit-scrollbar-track {
+
+.tunnel-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tunnel-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
   background: var(--color-bg);
+  opacity: 1;
+  will-change: opacity;
 }
-::-webkit-scrollbar-thumb {
-  background: var(--color-surface-2);
-  border-radius: 999px;
+
+.tunnel-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  width: 100%;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-border-strong);
+
+@media (prefers-reduced-motion: reduce) {
+  .tunnel-root,
+  .tunnel-canvas,
+  .tunnel-veil,
+  .tunnel-panel {
+    display: none;
+  }
+}
+
+/* Native scrollbar hidden — ScrollProgressBar is the only visible scroll indicator */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+::-webkit-scrollbar {
+  display: none;
 }
 
 @layer base {

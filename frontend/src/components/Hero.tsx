@@ -3,25 +3,39 @@
 import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { Globe } from "lucide-react";
-import { useLiveClock } from "@/hooks/useLiveClock";
-import { useMousePosition } from "@/hooks/useMousePosition";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Link from "next/link";
 import { ScrambleText } from "./ScrambleText";
 import { GlossyWordmark } from "./GlossyWordmark";
+import InteractiveNeuralVortex from "./ui/interactive-neural-vortex-background";
 
-export function Hero({ connected }: { connected: boolean }) {
+gsap.registerPlugin(ScrollTrigger);
+
+export function Hero() {
   const scope = useRef<HTMLDivElement>(null);
-  const { time, zone } = useLiveClock();
-  const pos = useMousePosition(scope);
 
   useGSAP(
     () => {
-      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-      tl.from(".hero-kicker", { opacity: 0, y: 12, duration: 0.5 })
-        .from(".hero-wordmark", { opacity: 0, scale: 0.92, duration: 0.9, ease: "power2.out" }, "-=0.2")
-        .from(".hero-sub", { opacity: 0, y: 16, duration: 0.5 }, "-=0.3")
-        .from(".hero-badge", { opacity: 0, y: 12, duration: 0.4, stagger: 0.08 }, "-=0.2")
-        .from(".hero-scroll-cue", { opacity: 0, duration: 0.6 }, "-=0.1");
+      gsap.from(".hero-wordmark", { opacity: 0, scale: 0.92, duration: 0.9, ease: "power2.out" });
+
+      // Sells the wordmark's 3D glass look — tumbles it around the vertical
+      // and horizontal axes as you scroll through the hero, tied directly
+      // to scroll position (scrub). The wordmark can be up to ~1024px wide
+      // (max-w-5xl), so a perspective distance anywhere near that size
+      // makes it balloon/distort instead of reading as a clean rotation —
+      // it needs to be several times the element's own size to look right.
+      gsap.set(".hero-wordmark", { transformPerspective: 2600, transformStyle: "preserve-3d" });
+      gsap.to(".hero-wordmark", {
+        rotateY: 90,
+        rotateX: 8,
+        ease: "none",
+        scrollTrigger: {
+          trigger: scope.current,
+          start: "top top",
+          end: "+=180%",
+          scrub: true,
+        },
+      });
     },
     { scope }
   );
@@ -31,74 +45,51 @@ export function Hero({ connected }: { connected: boolean }) {
       ref={scope}
       className="relative flex min-h-screen flex-col overflow-hidden px-6 py-6 sm:px-10"
     >
-      <div className="hud-grid" />
+      <InteractiveNeuralVortex />
+
+      <div className="hero-wordmark absolute left-1/2 top-1/2 z-0 w-full max-w-5xl -translate-x-1/2 -translate-y-1/2">
+        <GlossyWordmark />
+      </div>
 
       {/* Top HUD bar */}
       <div className="relative z-10 flex items-start justify-between font-mono text-xs uppercase tracking-widest text-ink-muted">
         <div>
-          <div className="text-sm font-bold text-ink">NOCAP.DEV</div>
-          <div className="mt-1 text-ink text-base normal-case tracking-normal">Truth Layer</div>
+          <div className="text-sm font-bold text-ink">Taskmaster</div>
+          <div className="mt-1 text-ink text-base normal-case tracking-normal">
+            track — All Things Agentic Hackathon
+          </div>
         </div>
         <div className="hidden text-center normal-case tracking-normal sm:block">
           Thinking in evidence.
           <br />
           Guarding what&apos;s true.
         </div>
-        <div className="flex gap-6">
-          <span>Work</span>
-          <span>Contact</span>
-          <span className={connected ? "text-accent-lime" : ""}>
-            Status[{connected ? "●" : "○"}]
-          </span>
+        <div className="flex items-center gap-6">
+          <a href="#how-it-works">How it works</a>
+          <a href="#features">Features</a>
+          <Link
+            href="/login"
+            className="normal-case tracking-normal rounded-full border border-border-strong bg-surface px-3 py-1 text-ink transition hover:bg-surface-2"
+          >
+            Login
+          </Link>
         </div>
       </div>
 
-      {/* Center content */}
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center">
-        <div className="hero-kicker mb-4 flex items-center gap-2 rounded-full border border-border-strong bg-surface/60 px-4 py-1.5 font-mono text-xs uppercase tracking-widest text-ink-muted backdrop-blur">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-status-good" : "bg-ink-faint"}`}
-            style={{ boxShadow: connected ? "0 0 8px var(--color-status-good)" : "none" }}
+      {/* Center content — pointer-events-none so its empty flex-1 area
+          doesn't sit on top of the wordmark and eat the hover events that
+          drive its cursor-smear effect; the h1 has no interactive children
+          so it doesn't need pointer events of its own. */}
+      <div className="pointer-events-none relative z-10 flex flex-1 flex-col items-center justify-end">
+        <h1 className="self-start mb-10 max-w-4xl text-left font-sans text-3xl font-black uppercase leading-[1.05] tracking-tight text-ink sm:text-4xl md:text-5xl">
+          <ScrambleText text="No chatbot lies." as="span" className="block" />
+          <ScrambleText
+            text="An autonomous agent that catches and fixes bad data before it becomes an answer."
+            as="span"
+            className="block"
+            delay={0.15}
           />
-          {connected ? "Live — connected to audit log" : "Connecting..."}
-        </div>
-
-        <div className="hero-wordmark w-full max-w-3xl">
-          <GlossyWordmark />
-        </div>
-
-        <h1 className="mt-6 text-center font-display text-4xl font-medium leading-[1.05] sm:text-5xl md:text-6xl">
-          <ScrambleText text="I BRING PROOF" as="span" className="block text-ink" />
-          <span className="block">
-            <span className="text-accent-lime italic">TO</span>{" "}
-            <ScrambleText text="EVERY ANSWER" as="span" className="text-ink" delay={0.15} />
-          </span>
         </h1>
-
-        <p className="hero-sub mt-8 max-w-xl text-center text-lg text-ink-muted">
-          No chatbot lies. An autonomous agent that catches, quarantines, and repairs bad data
-          in your AI knowledge base before it ever reaches an answer.
-        </p>
-
-        <div className="hero-badge mt-10 flex items-center gap-2 rounded-full border border-border bg-surface px-5 py-2.5 font-mono text-xs text-ink-muted">
-          <span className="text-accent-lime">Taskmaster</span>
-          track — All Things Agentic Hackathon
-        </div>
-      </div>
-
-      {/* Bottom HUD bar */}
-      <div className="relative z-10 flex items-center justify-between font-mono text-xs text-ink-faint">
-        <span>
-          {zone} {time}
-        </span>
-        <span className="hidden sm:inline">
-          {String(pos.x).padStart(4, "0")} X {String(pos.y).padStart(4, "0")} Y
-        </span>
-        <Globe size={16} />
-      </div>
-
-      <div className="hero-scroll-cue absolute bottom-16 left-1/2 hidden -translate-x-1/2 items-center gap-2 text-ink-faint md:flex">
-        <span className="font-mono text-[10px] uppercase tracking-widest">Scroll</span>
       </div>
     </section>
   );
