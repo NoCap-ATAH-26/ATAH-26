@@ -8,6 +8,7 @@ import Link from "next/link";
 import { ScrambleText } from "./ScrambleText";
 import { GlossyWordmark } from "./GlossyWordmark";
 import InteractiveNeuralVortex from "./ui/interactive-neural-vortex-background";
+import { ThemeToggle } from "./ThemeToggle";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -73,6 +74,7 @@ export function Hero() {
           >
             Login
           </Link>
+          <ThemeToggle />
         </div>
       </div>
 

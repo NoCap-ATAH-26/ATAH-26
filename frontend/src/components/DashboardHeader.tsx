@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function DashboardHeader({
   connected,
@@ -45,6 +46,7 @@ export function DashboardHeader({
           <LogOut size={13} />
           {signingOut ? "Signing out..." : "Sign out"}
         </button>
+        <ThemeToggle />
       </div>
     </header>
   );

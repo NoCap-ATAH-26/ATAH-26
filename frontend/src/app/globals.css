@@ -61,6 +61,38 @@
   --radius: 0.75rem;
 }
 
+/* Light theme — frosted glass / ice: near-white cool surfaces, periwinkle
+   shading, deep slate ink. Only the raw palette is redefined here; every
+   semantic alias below (--background, --card, ...) already points at these
+   via var(), so they follow automatically.
+
+   The brand accent flips from Aquamarine to periwinkle blue: #8be8cb has
+   ~1.3:1 contrast on a near-white surface, so it can't carry text, buttons,
+   or focus rings in this theme. The blue is the same family as the glossy
+   wordmark's gradient, which keeps the two reading as one brand. */
+:root[data-theme="light"] {
+  --color-bg: #e9eff7;
+  --color-surface: #f6f9fd;
+  --color-surface-2: #dce6f2;
+  --color-ink: #131c27;
+  --color-ink-muted: #51637a;
+  --color-ink-faint: #5c6b80;
+  --color-border: color-mix(in srgb, #43597a 20%, transparent);
+  --color-border-strong: color-mix(in srgb, #43597a 36%, transparent);
+
+  --color-accent-lime: #3f56c9;
+  --color-accent-lime-dim: #2c3fa4;
+  --color-accent-mauve: #7b86c8;
+
+  /* Status hues are held constant (same CVD-safe hue ordering as dark) and
+     only darkened in lightness — the dark theme's values sit at 1.9:1–3.3:1
+     on a near-white surface, which is unreadable for badge text. */
+  --color-status-good: #0a7a0a;
+  --color-status-warning: #8a6104;
+  --color-status-serious: #b8532a;
+  --color-status-critical: #b02525;
+}
+
 @theme inline {
   --color-bg: var(--color-bg);
   --color-surface: var(--color-surface);
@@ -119,6 +151,9 @@ body {
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  transition:
+    background-color 0.45s ease,
+    color 0.45s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -165,6 +200,23 @@ body {
   border-radius: 1rem;
 }
 
+/* On black, a flat lighter fill is enough to separate a card from the page.
+   On the pale theme there's almost no fill contrast left to do that job, so
+   the separation comes from a soft cool shadow and a frosted backdrop
+   instead — which is also what sells the "ice / glass" look. */
+:root[data-theme="light"] .card-surface {
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, #2c3e5c 8%, transparent),
+    0 18px 40px -24px color-mix(in srgb, #2c3e5c 45%, transparent);
+}
+
+:root[data-theme="light"] .grain-bg::before {
+  opacity: 0.02;
+}
+
 /* HUD grid overlay — faint lines with crosshair marks at intersections,
    used behind the hero to echo a "systems/engineering blueprint" feel. */
 .hud-grid {
@@ -193,6 +245,68 @@ body {
 ::selection {
   background: var(--color-accent-lime);
   color: var(--color-bg);
+}
+
+/* Glossy wordmark (GlossyWordmark.tsx) — `stop-color`, `fill`, `fill-opacity`,
+   and `flood-color`/`flood-opacity` are real CSS properties on SVG, so the
+   whole thing can be re-themed from here instead of duplicating the markup
+   or re-rendering the filter graph in JS. */
+.wm-stop-0 {
+  stop-color: #ffffff;
+}
+.wm-stop-1 {
+  stop-color: #a6b6ff;
+}
+.wm-stop-2 {
+  stop-color: #5c68e8;
+}
+.wm-stop-3 {
+  stop-color: #2c37a0;
+}
+.wm-body {
+  fill-opacity: 0.25;
+}
+.wm-shadow-fill {
+  fill: #000000;
+}
+.wm-flood-contact {
+  flood-color: #000000;
+  flood-opacity: 0.8;
+}
+.wm-flood-ambient {
+  flood-color: #000000;
+  flood-opacity: 0.5;
+}
+
+/* Light theme: a black drop shadow reads as dirt on a pale page, so the
+   shadows become cool blue-grey. The glass body also has to carry far more
+   of its own color — at 0.25 opacity the near-white top of the gradient
+   simply vanishes against a near-white background. */
+:root[data-theme="light"] .wm-stop-0 {
+  stop-color: #eef3ff;
+}
+:root[data-theme="light"] .wm-stop-1 {
+  stop-color: #9fb2f5;
+}
+:root[data-theme="light"] .wm-stop-2 {
+  stop-color: #4a5ad8;
+}
+:root[data-theme="light"] .wm-stop-3 {
+  stop-color: #1c2878;
+}
+:root[data-theme="light"] .wm-body {
+  fill-opacity: 0.62;
+}
+:root[data-theme="light"] .wm-shadow-fill {
+  fill: #6d86ad;
+}
+:root[data-theme="light"] .wm-flood-contact {
+  flood-color: #4a6a99;
+  flood-opacity: 0.38;
+}
+:root[data-theme="light"] .wm-flood-ambient {
+  flood-color: #7d93b8;
+  flood-opacity: 0.28;
 }
 
 /* 3D tunnel scroll — camera stays fixed at the cylinder's axis; scroll

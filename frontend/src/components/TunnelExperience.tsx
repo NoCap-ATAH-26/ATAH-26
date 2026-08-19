@@ -5,6 +5,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { createTunnelScene, type Anchor } from "@/lib/tunnel/scene";
+import { useTheme } from "@/hooks/useTheme";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -62,6 +63,7 @@ export function TunnelExperience({ panels }: { panels: TunnelPanelConfig[] }) {
     getReducedMotionSnapshot,
     getReducedMotionServerSnapshot
   );
+  const theme = useTheme();
 
   useGSAP(
     () => {
@@ -70,7 +72,7 @@ export function TunnelExperience({ panels }: { panels: TunnelPanelConfig[] }) {
       const root = rootRef.current;
       if (!canvas || !root) return;
 
-      const scene = createTunnelScene(canvas);
+      const scene = createTunnelScene(canvas, theme);
       const resize = () => scene.resize(window.innerWidth, window.innerHeight);
       resize();
       window.addEventListener("resize", resize);
@@ -153,7 +155,10 @@ export function TunnelExperience({ panels }: { panels: TunnelPanelConfig[] }) {
         scene.dispose();
       };
     },
-    { scope: rootRef, dependencies: [panels, reducedMotion] }
+    // `theme` rebuilds the scene: the materials, fog, and wall texture all bake
+    // their colors in at construction, so there's nothing to mutate in place.
+    // useGSAP's cleanup disposes the old scene and reverts its ScrollTrigger.
+    { scope: rootRef, dependencies: [panels, reducedMotion, theme] }
   );
 
   if (reducedMotion) {

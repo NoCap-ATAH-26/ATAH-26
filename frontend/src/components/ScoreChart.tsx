@@ -19,17 +19,28 @@ import { STATUS_META } from "@/lib/types";
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Sourced from STATUS_META rather than re-listing the hexes, so these follow
+// the theme's status tokens instead of silently keeping the dark-theme values.
 const STATUS_COLOR: Record<Status, string> = {
-  approved: "#0ca30c",
-  needs_repair: "#fab219",
-  repaired: "#ec835a",
-  quarantined: "#d03b3b",
+  approved: STATUS_META.approved.colorVar,
+  needs_repair: STATUS_META.needs_repair.colorVar,
+  repaired: STATUS_META.repaired.colorVar,
+  quarantined: STATUS_META.quarantined.colorVar,
 };
 
 function CustomDot(props: unknown) {
   const { cx, cy, payload } = props as { cx: number; cy: number; payload: { status: Status } };
   if (cx == null || cy == null) return null;
-  return <Dot cx={cx} cy={cy} r={4} fill={STATUS_COLOR[payload.status]} stroke="#0a0a0b" strokeWidth={1.5} />;
+  return (
+    <Dot
+      cx={cx}
+      cy={cy}
+      r={4}
+      fill={STATUS_COLOR[payload.status]}
+      stroke="var(--color-bg)"
+      strokeWidth={1.5}
+    />
+  );
 }
 
 function ChartTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: AuditLogRow & { t: number } }> }) {

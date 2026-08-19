@@ -1,11 +1,21 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTheme } from "@/hooks/useTheme";
 
 const InteractiveNeuralVortex = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointer = useRef({ x: 0, y: 0, tX: 0, tY: 0 });
   const animationRef = useRef<number | null>(null);
+
+  // Fed to the shader as a uniform rather than listed as an effect dependency:
+  // rebuilding the GL context on every theme flip would drop a frame and
+  // re-run shader compilation for what is really just one float.
+  const theme = useTheme();
+  const themeRef = useRef(theme);
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
 
   useEffect(() => {
     const canvasEl = canvasRef.current;
@@ -35,6 +45,7 @@ const InteractiveNeuralVortex = () => {
       uniform float u_ratio;
       uniform vec2 u_pointer_position;
       uniform float u_scroll_progress;
+      uniform float u_light;
 
       vec2 rotate(vec2 uv, float th) {
         return mat2(cos(th), sin(th), -sin(th), cos(th)) * uv;
@@ -72,6 +83,14 @@ const InteractiveNeuralVortex = () => {
         color = vec3(0.5, 0.15, 0.65);
         color = mix(color, vec3(0.02, 0.7, 0.9), 0.32 + 0.16 * sin(2.0 * u_scroll_progress + 1.2));
         color += vec3(0.15, 0.0, 0.6) * sin(2.0 * u_scroll_progress + 1.5);
+
+        // The canvas composites over the page, so on the pale theme the
+        // strands have to be *darker* than the background to be visible at
+        // all — the dark theme's bright violet/cyan would wash straight out.
+        vec3 lightColor = vec3(0.20, 0.28, 0.76);
+        lightColor = mix(lightColor, vec3(0.08, 0.42, 0.74), 0.32 + 0.16 * sin(2.0 * u_scroll_progress + 1.2));
+        color = mix(color, lightColor, u_light);
+
         color = color * noise;
         gl_FragColor = vec4(color, noise);
       }
@@ -123,6 +142,7 @@ const InteractiveNeuralVortex = () => {
     const uRatio = gl.getUniformLocation(program, "u_ratio");
     const uPointerPosition = gl.getUniformLocation(program, "u_pointer_position");
     const uScrollProgress = gl.getUniformLocation(program, "u_scroll_progress");
+    const uLight = gl.getUniformLocation(program, "u_light");
 
     const resizeCanvas = () => {
       const devicePixelRatio = Math.min(window.devicePixelRatio, 2);
@@ -148,6 +168,7 @@ const InteractiveNeuralVortex = () => {
         1 - pointer.current.y / window.innerHeight
       );
       gl.uniform1f(uScrollProgress, window.pageYOffset / (2 * window.innerHeight));
+      gl.uniform1f(uLight, themeRef.current === "light" ? 1 : 0);
 
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       animationRef.current = requestAnimationFrame(render);

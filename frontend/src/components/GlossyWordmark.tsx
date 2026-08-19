@@ -68,11 +68,15 @@ export function GlossyWordmark() {
   return (
     <svg ref={svgRef} viewBox="0 0 640 220" className="w-full" role="img" aria-label="NoCap">
       <defs>
+        {/* Colors for the gradient stops, both shadow floods, and the body's
+            fill-opacity live in globals.css (.wm-*) so the whole wordmark
+            re-themes with `<html data-theme>` — see the light-theme block
+            there for why the pale theme needs a different treatment. */}
         <linearGradient id="wordmarkBase" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="30%" stopColor="#a6b6ff" />
-          <stop offset="65%" stopColor="#5c68e8" />
-          <stop offset="100%" stopColor="#2c37a0" />
+          <stop offset="0%" className="wm-stop-0" />
+          <stop offset="30%" className="wm-stop-1" />
+          <stop offset="65%" className="wm-stop-2" />
+          <stop offset="100%" className="wm-stop-3" />
         </linearGradient>
 
         <filter id="wordmarkGloss" x="-40%" y="-40%" width="180%" height="180%">
@@ -113,14 +117,14 @@ export function GlossyWordmark() {
         <filter id="wordmarkShadow" x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur in="SourceAlpha" stdDeviation="20" />
           <feOffset dx="0" dy="26" result="offsetblur" />
-          <feFlood floodColor="#000000" floodOpacity="0.8" />
+          <feFlood className="wm-flood-contact" />
           <feComposite in2="offsetblur" operator="in" />
         </filter>
 
         <filter id="wordmarkShadowSoft" x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur in="SourceAlpha" stdDeviation="34" />
           <feOffset dx="0" dy="10" result="offsetblur" />
-          <feFlood floodColor="#000000" floodOpacity="0.5" />
+          <feFlood className="wm-flood-ambient" />
           <feComposite in2="offsetblur" operator="in" />
         </filter>
       </defs>
@@ -131,9 +135,8 @@ export function GlossyWordmark() {
         y="57%"
         textAnchor="middle"
         dominantBaseline="middle"
-        className="font-wordmark"
+        className="font-wordmark wm-shadow-fill"
         fontSize="150"
-        fill="#000000"
         filter="url(#wordmarkShadowSoft)"
       >
         NoCap
@@ -145,9 +148,8 @@ export function GlossyWordmark() {
         y="58%"
         textAnchor="middle"
         dominantBaseline="middle"
-        className="font-wordmark"
+        className="font-wordmark wm-shadow-fill"
         fontSize="150"
-        fill="#000000"
         filter="url(#wordmarkShadow)"
       >
         NoCap
@@ -159,10 +161,9 @@ export function GlossyWordmark() {
         y="55%"
         textAnchor="middle"
         dominantBaseline="middle"
-        className="font-wordmark"
+        className="font-wordmark wm-body"
         fontSize="150"
         fill="url(#wordmarkBase)"
-        fillOpacity="0.25"
         filter="url(#wordmarkGloss)"
         style={{ cursor: "default" }}
       >
