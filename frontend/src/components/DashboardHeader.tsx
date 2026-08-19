@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { LogOut, MessageSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -37,6 +38,13 @@ export function DashboardHeader({
           Status[{connected ? "●" : "○"}]
         </span>
         {email && <span className="hidden normal-case tracking-normal text-ink-muted sm:inline">{email}</span>}
+        <Link
+          href="/dashboard/chat"
+          className="flex items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3 py-1.5 text-ink transition hover:bg-surface-2"
+        >
+          <MessageSquare size={13} />
+          Chat
+        </Link>
         <button
           type="button"
           onClick={handleSignOut}
