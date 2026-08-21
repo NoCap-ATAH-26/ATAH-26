@@ -23,7 +23,7 @@ const SCENE_URL = "https://prod.spline.design/qcICZX7w7KfztpZr/scene.splinecode"
  * prop rather than a magic number because the exact framing depends on how the
  * scene itself is composed.
  */
-export function ChatSplineCharacter({ heightScale = 195 }: { heightScale?: number }) {
+export function ChatSplineCharacter({ heightScale = 165 }: { heightScale?: number }) {
   const [loaded, setLoaded] = useState(false);
 
   return (

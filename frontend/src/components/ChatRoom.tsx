@@ -91,12 +91,21 @@ export function ChatRoom({ email }: { email: string | null }) {
     <main className="relative min-h-screen bg-black text-zinc-100">
       <ChatSplineCharacter />
 
-      <div className="relative z-10 flex min-h-screen flex-col">
+      {/* pointer-events-none here, not on <main> — this wrapper is unconstrained
+          block width (100% of the page) even though its visible content (the
+          header row, the 54%-wide chat column) covers less than that. Without
+          this, its transparent space over the character's side of the screen
+          would still hit-test as clickable and eat every mouse event meant
+          for the Spline canvas underneath — which is why the character
+          wasn't tracking the cursor. pointer-events is inherited, so it has
+          to be explicitly turned back on for the header's Link and for the
+          chat column below. */}
+      <div className="relative z-10 flex min-h-screen flex-col pointer-events-none">
         <header className="flex items-center justify-between px-6 py-5 sm:px-10">
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 font-mono text-xs uppercase tracking-widest text-zinc-300 transition hover:bg-white/5"
+              className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 font-mono text-xs uppercase tracking-widest text-zinc-300 transition hover:bg-white/5"
             >
               <ArrowLeft size={13} />
               Dashboard
@@ -110,7 +119,7 @@ export function ChatRoom({ email }: { email: string | null }) {
 
         {/* Held to the left half so the conversation never runs under the
             character occupying the right side of the viewport. */}
-        <div className="flex flex-1 flex-col px-6 pb-8 sm:px-10 lg:w-[54%]">
+        <div className="pointer-events-auto flex flex-1 flex-col px-6 pb-8 sm:px-10 lg:w-[54%]">
           <div className="flex-1 space-y-4 overflow-y-auto py-6">
             {messages.map((m) => (
               <div
