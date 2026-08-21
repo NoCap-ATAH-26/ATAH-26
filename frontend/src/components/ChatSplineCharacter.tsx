@@ -30,12 +30,20 @@ const SCENE_URL = "https://prod.spline.design/qcICZX7w7KfztpZr/scene.splinecode"
  * `zoom` is a prop rather than a hardcoded value because the correct number
  * depends on how far back the character sits in the scene as authored,
  * which isn't knowable from here — tune it once you can see it rendered.
+ * Default is `1`, i.e. no adjustment: the size as originally authored in
+ * the scene, before either of the earlier zoom-out attempts.
  */
-export function ChatSplineCharacter({ zoom = 0.55 }: { zoom?: number }) {
+export function ChatSplineCharacter({ zoom = 1 }: { zoom?: number }) {
   const [loaded, setLoaded] = useState(false);
 
   function handleLoad(app: Application) {
     app.setZoom(zoom);
+    // The scene's own background may not be pure #000 (or may not be a flat
+    // fill at all in the exported file), which would show as a visible box
+    // around the character instead of it just sitting on the page. Forcing
+    // it transparent lets <main>'s own bg-black show through everywhere the
+    // scene itself doesn't draw something.
+    app.setBackgroundColor("transparent");
     setLoaded(true);
   }
 

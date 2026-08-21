@@ -88,7 +88,12 @@ export function ChatRoom({ email }: { email: string | null }) {
   }
 
   return (
-    <main className="relative min-h-screen bg-black text-zinc-100">
+    // grain-bg (globals.css): a faint noise texture behind everything. Without
+    // it the glass box below has nothing but flat black behind it, and
+    // backdrop-blur of a flat color is visually a no-op — the box read as a
+    // plain grey fill rather than "blurred", because there was nothing there
+    // to actually blur.
+    <main className="relative min-h-screen grain-bg bg-black text-zinc-100">
       <ChatSplineCharacter />
 
       {/* pointer-events-none here, not on <main> — this wrapper is unconstrained
@@ -120,10 +125,12 @@ export function ChatRoom({ email }: { email: string | null }) {
         {/* Held to the left half so the conversation never runs under the
             character occupying the right side of the viewport. */}
         <div className="pointer-events-auto flex flex-1 flex-col px-6 py-8 sm:px-10 lg:w-[54%]">
-          {/* The glass box itself: transparent white fill + backdrop-blur is
-              what makes it read as frosted glass rather than a flat panel —
-              bg-white/5 alone (no blur) would look tinted, not glassy. */}
-          <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-white/25 bg-white/5 backdrop-blur-md">
+          {/* Kept the white tint very faint on purpose — the previous /5 read
+              as a flat grey panel rather than "glass", since the blur alone
+              barely shows against the page's mostly-flat black. Lower
+              opacity plus the grain texture behind it puts more of the
+              visible effect on the blur itself instead of the tint. */}
+          <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-white/25 bg-white/[0.03] backdrop-blur-md">
             <div className="flex-1 space-y-4 overflow-y-auto p-6">
               {messages.map((m) => (
                 <div
