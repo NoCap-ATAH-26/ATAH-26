@@ -32,6 +32,12 @@ export function ChatRoom({ email }: { email: string | null }) {
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
+  // Set right before setActiveSessionId() when send() itself just created the
+  // session for the message it's about to persist — otherwise the
+  // loadMessages effect below reacts to that id change by re-fetching from
+  // the DB, and since the insert hasn't landed yet, it clobbers the
+  // in-progress/just-finished reply with an empty list.
+  const skipNextLoadRef = useRef(false);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -65,6 +71,11 @@ export function ChatRoom({ email }: { email: string | null }) {
   // right after "New chat"), where it just resets back to the opening line.
   useEffect(() => {
     let active = true;
+
+    if (skipNextLoadRef.current) {
+      skipNextLoadRef.current = false;
+      return;
+    }
 
     async function loadMessages() {
       if (activeSessionId === null) {
@@ -132,6 +143,7 @@ export function ChatRoom({ email }: { email: string | null }) {
           return;
         }
         sessionId = session.id;
+        skipNextLoadRef.current = true;
         setActiveSessionId(sessionId);
         setSessions((prev) => [session, ...prev]);
       }
@@ -167,17 +179,27 @@ export function ChatRoom({ email }: { email: string | null }) {
         );
       }
 
-      // Best-effort — a failed save shouldn't interrupt an otherwise-working
-      // chat, so this isn't awaited or surfaced to the user.
-      void supabase.from("chat_messages").insert([
+      // Awaited (not fire-and-forget) specifically so a real failure here is
+      // visible in the console instead of silently vanishing — a save that
+      // fails with zero trace is worse than one that costs a bit of latency.
+      const { error: saveError } = await supabase.from("chat_messages").insert([
         { session_id: sessionId, role: "user", content: text },
         { session_id: sessionId, role: "assistant", content: fullReply },
       ]);
+      if (saveError) {
+        console.error("[chat] failed to save messages:", saveError);
+      }
 
       // Bumps the session to the top of the sidebar, matching updated_at
-      // ordering. Fire-and-forget for the same reason as the insert above.
+      // ordering.
       const now = new Date().toISOString();
-      void supabase.from("chat_sessions").update({ updated_at: now }).eq("id", sessionId);
+      const { error: bumpError } = await supabase
+        .from("chat_sessions")
+        .update({ updated_at: now })
+        .eq("id", sessionId);
+      if (bumpError) {
+        console.error("[chat] failed to bump session updated_at:", bumpError);
+      }
       setSessions((prev) =>
         [...prev]
           .map((s) => (s.id === sessionId ? { ...s, updated_at: now } : s))
