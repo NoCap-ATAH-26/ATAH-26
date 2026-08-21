@@ -36,8 +36,9 @@ MODEL = "gemini-3.5-flash"
 # between calls to avoid 429 RESOURCE_EXHAUSTED errors when processing many
 # documents in one run. 13 seconds keeps us safely under 5/60s.
 # If you upgrade to a paid tier, set this to 0 (or pass --delay 0).
-# Doesn't apply when LLM_PROVIDER=ollama -- a local model has no such quota.
-RATE_LIMIT_DELAY_SECONDS = 0 if llm_client.provider() == "ollama" else 13
+# Doesn't apply when LLM_PROVIDER=openai -- neither a local Ollama nor most
+# hosted alternatives (Mistral's free tier included) have this constraint.
+RATE_LIMIT_DELAY_SECONDS = 0 if llm_client.provider() == "openai" else 13
 
 # Resolve project paths relative to this file, so it works no matter
 # what directory it's launched from.
@@ -142,15 +143,15 @@ def _load_incoming_content(path: Path, client: genai.Client | None):
     valid UTF-8 text (PDFs, images, docx, etc.) gets uploaded to Gemini's
     Files API instead, so the model reads it natively rather than us needing
     a format-specific text extractor for every possible file type -- not
-    available when LLM_PROVIDER=ollama (client is None in that case), since
-    that has no equivalent to Gemini's Files API in this codebase."""
+    available when LLM_PROVIDER=openai (client is None in that case), since
+    that path has no equivalent to Gemini's Files API in this codebase."""
     try:
         return path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         if client is None:
             raise RuntimeError(
                 f"{path.name} is a binary file, which needs Gemini's Files API to "
-                "read -- not supported when LLM_PROVIDER=ollama. Unset "
+                "read -- not supported when LLM_PROVIDER=openai. Unset "
                 "LLM_PROVIDER (or set it to gemini) to process this file."
             )
         return client.files.upload(file=str(path))
@@ -210,7 +211,7 @@ def inspect_document(file_name: str, client: genai.Client | None, sources: dict[
 
 def run(file_names: list[str], delay_seconds: float = RATE_LIMIT_DELAY_SECONDS) -> list[dict]:
     client = None
-    if llm_client.provider() != "ollama":
+    if llm_client.provider() != "openai":
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise EnvironmentError(

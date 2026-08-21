@@ -214,7 +214,7 @@ def repair_document(
 
 def run(file_names: list[str], delay_seconds: float = RATE_LIMIT_DELAY_SECONDS) -> list[dict]:
     client = None
-    if inspector.llm_client.provider() != "ollama":
+    if inspector.llm_client.provider() != "openai":
         api_key = inspector.os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise EnvironmentError(
