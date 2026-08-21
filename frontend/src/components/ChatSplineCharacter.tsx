@@ -24,24 +24,26 @@ const SCENE_URL = "https://prod.spline.design/qcICZX7w7KfztpZr/scene.splinecode"
  * right-bias an earlier version of this comment assumed (that was an
  * artifact of the narrow column, not the scene itself).
  *
- * Zoom goes through the Spline runtime's own `app.setZoom()` — a thin
- * wrapper over the scene camera's `zoom` (source: node_modules/@splinetool/
- * runtime/build/runtime.js, `setZoom(e,r){r>=0&&(...zoom=r)}`), where `1` is
- * the camera's authored default, values below `1` pull it back (more of the
- * character visible, smaller), and above `1` push in. `zoom` is a prop
- * rather than a hardcoded value because the correct number depends on the
- * scene as authored, which isn't knowable from here — tune it once you can
- * see it rendered.
+ * Zoom is a CSS `scale()` on the canvas itself, not the Spline runtime's own
+ * `app.setZoom()`. That looked like the right tool — `setZoom(t)` in
+ * node_modules/@splinetool/runtime/build/runtime.js reads
+ * `this._controls?.orbitControls instanceof wp && ...setZoom(t)` — but it's
+ * a silent no-op unless the scene's camera has interactive OrbitControls
+ * attached, which this scene doesn't, so it never had any effect at any
+ * value. `origin-top` keeps the top of the frame anchored while scaling, so
+ * increasing zoom crops in from the bottom rather than growing from center
+ * (which would push the head out of frame just as fast as it crops the
+ * bottom in). `zoom` is a prop rather than a hardcoded value because the
+ * right number depends on the scene as authored — tune it once you can see
+ * it rendered.
  *
  * `shiftXPercent` moves it off that centered default — negative is left.
- * Done as a CSS translate on the canvas itself (not a Spline camera/object
- * call) since it's a pure screen-space nudge, not something about the 3D
- * scene. The parent needs overflow-hidden (set on <main> in ChatRoom) since
- * shifting a full-viewport-width element sideways would otherwise create
- * horizontal scroll.
+ * The parent needs overflow-hidden (set on <main> in ChatRoom) since
+ * scaling/shifting a full-viewport-width element would otherwise create
+ * scroll.
  */
 export function ChatSplineCharacter({
-  zoom = 2.2,
+  zoom = 1.6,
   shiftXPercent = 22,
 }: {
   zoom?: number;
@@ -50,7 +52,6 @@ export function ChatSplineCharacter({
   const [loaded, setLoaded] = useState(false);
 
   function handleLoad(app: Application) {
-    app.setZoom(zoom);
     // The scene's own background may not be pure #000 (or may not be a flat
     // fill at all in the exported file), which would show as a visible box
     // around the character instead of it just sitting on the page. Forcing
@@ -62,8 +63,11 @@ export function ChatSplineCharacter({
 
   return (
     <div
-      className="pointer-events-auto absolute inset-0 transition-opacity duration-1000"
-      style={{ opacity: loaded ? 1 : 0, transform: `translateX(${shiftXPercent}%)` }}
+      className="pointer-events-auto absolute inset-0 origin-top transition-opacity duration-1000"
+      style={{
+        opacity: loaded ? 1 : 0,
+        transform: `translateX(${shiftXPercent}%) scale(${zoom})`,
+      }}
     >
       <Spline scene={SCENE_URL} onLoad={handleLoad} className="h-full w-full" />
     </div>
