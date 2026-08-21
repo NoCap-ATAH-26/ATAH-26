@@ -10,6 +10,7 @@ import { PipelineStrip } from "@/components/PipelineStrip";
 import { ScoreChart } from "@/components/ScoreChart";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { DocumentViewer } from "@/components/DocumentViewer";
+import { DocumentUpload } from "@/components/DocumentUpload";
 
 export function DashboardShell({ email }: { email: string | null }) {
   const { rows, connected } = useAuditLog();
@@ -25,6 +26,7 @@ export function DashboardShell({ email }: { email: string | null }) {
       <section className="mx-auto max-w-6xl px-6 py-10">
         <div className="space-y-8">
           <StatTiles rows={rows} />
+          <DocumentUpload />
           <PipelineStrip rows={rows} />
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.4fr_1fr]">
