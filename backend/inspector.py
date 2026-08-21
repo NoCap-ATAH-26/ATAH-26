@@ -26,6 +26,7 @@ from google import genai
 from google.genai import types
 
 import audit_log
+import llm_client
 
 load_dotenv()
 
@@ -35,7 +36,8 @@ MODEL = "gemini-3.5-flash"
 # between calls to avoid 429 RESOURCE_EXHAUSTED errors when processing many
 # documents in one run. 13 seconds keeps us safely under 5/60s.
 # If you upgrade to a paid tier, set this to 0 (or pass --delay 0).
-RATE_LIMIT_DELAY_SECONDS = 13
+# Doesn't apply when LLM_PROVIDER=ollama -- a local model has no such quota.
+RATE_LIMIT_DELAY_SECONDS = 0 if llm_client.provider() == "ollama" else 13
 
 # Resolve project paths relative to this file, so it works no matter
 # what directory it's launched from.
@@ -135,27 +137,49 @@ def build_prompt(incoming_name: str, incoming_text: str, sources: dict[str, str]
     )
 
 
-def inspect_document(file_name: str, client: genai.Client, sources: dict[str, str]) -> dict:
+def _load_incoming_content(path: Path, client: genai.Client | None):
+    """Text files come back as str, same as always. Anything that isn't
+    valid UTF-8 text (PDFs, images, docx, etc.) gets uploaded to Gemini's
+    Files API instead, so the model reads it natively rather than us needing
+    a format-specific text extractor for every possible file type -- not
+    available when LLM_PROVIDER=ollama (client is None in that case), since
+    that has no equivalent to Gemini's Files API in this codebase."""
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        if client is None:
+            raise RuntimeError(
+                f"{path.name} is a binary file, which needs Gemini's Files API to "
+                "read -- not supported when LLM_PROVIDER=ollama. Unset "
+                "LLM_PROVIDER (or set it to gemini) to process this file."
+            )
+        return client.files.upload(file=str(path))
+
+
+def inspect_document(file_name: str, client: genai.Client | None, sources: dict[str, str]) -> dict:
     """Run a single incoming document through the Inspector Agent."""
     incoming_path = INCOMING_DOCUMENTS_DIR / file_name
     if not incoming_path.exists():
         raise FileNotFoundError(f"Incoming document not found: {incoming_path}")
 
-    incoming_text = incoming_path.read_text(encoding="utf-8")
-    prompt = build_prompt(file_name, incoming_text, sources)
+    incoming_content = _load_incoming_content(incoming_path, client)
+    if isinstance(incoming_content, str):
+        contents = build_prompt(file_name, incoming_content, sources)
+    else:
+        # Binary file: the text prompt describes it, the actual bytes are a
+        # second content part Gemini reads directly.
+        contents = [
+            build_prompt(file_name, "(attached below — read it directly)", sources),
+            incoming_content,
+        ]
 
-    response = client.models.generate_content(
+    result = llm_client.generate_json(
+        client=client,
         model=MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_INSTRUCTION,
-            response_mime_type="application/json",
-            response_schema=RESULT_SCHEMA,
-            temperature=0,
-        ),
+        system_instruction=SYSTEM_INSTRUCTION,
+        contents=contents,
+        response_schema=RESULT_SCHEMA,
     )
-
-    result = json.loads(response.text)
 
     # Defensive checks so bad model output never silently breaks the pipeline.
     result["file_name"] = file_name  # trust our own file system, not the model
@@ -185,13 +209,14 @@ def inspect_document(file_name: str, client: genai.Client, sources: dict[str, st
 
 
 def run(file_names: list[str], delay_seconds: float = RATE_LIMIT_DELAY_SECONDS) -> list[dict]:
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise EnvironmentError(
-            "GEMINI_API_KEY not found. Make sure .env exists and is loaded."
-        )
-
-    client = genai.Client(api_key=api_key)
+    client = None
+    if llm_client.provider() != "ollama":
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise EnvironmentError(
+                "GEMINI_API_KEY not found. Make sure .env exists and is loaded."
+            )
+        client = genai.Client(api_key=api_key)
     sources = load_approved_sources()
 
     results = []
@@ -233,9 +258,9 @@ def main():
     args = parser.parse_args()
 
     if args.all:
-        file_names = sorted(p.name for p in INCOMING_DOCUMENTS_DIR.glob("*.md"))
+        file_names = sorted(p.name for p in INCOMING_DOCUMENTS_DIR.iterdir() if p.is_file())
         if not file_names:
-            print(f"No .md files found in {INCOMING_DOCUMENTS_DIR}", file=sys.stderr)
+            print(f"No files found in {INCOMING_DOCUMENTS_DIR}", file=sys.stderr)
             sys.exit(1)
     elif args.files:
         file_names = args.files

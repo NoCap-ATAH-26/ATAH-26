@@ -151,18 +151,13 @@ def verify_document(
     repaired_text = repaired_path.read_text(encoding="utf-8")
     prompt = build_verify_prompt(file_name, repaired_text, sources)
 
-    response = client.models.generate_content(
+    result = inspector.llm_client.generate_json(
+        client=client,
         model=MODEL,
+        system_instruction=SYSTEM_INSTRUCTION,
         contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_INSTRUCTION,
-            response_mime_type="application/json",
-            response_schema=VERIFY_SCHEMA,
-            temperature=0,
-        ),
+        response_schema=VERIFY_SCHEMA,
     )
-
-    result = json.loads(response.text)
 
     # Defensive checks, same philosophy as Inspector and Repair.
     if result.get("status") not in VALID_STATUSES:
@@ -189,13 +184,14 @@ def verify_document(
 
 
 def run(file_names: list[str], delay_seconds: float = RATE_LIMIT_DELAY_SECONDS) -> list[dict]:
-    api_key = inspector.os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise EnvironmentError(
-            "GEMINI_API_KEY not found. Make sure .env exists and is loaded."
-        )
-
-    client = genai.Client(api_key=api_key)
+    client = None
+    if inspector.llm_client.provider() != "ollama":
+        api_key = inspector.os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise EnvironmentError(
+                "GEMINI_API_KEY not found. Make sure .env exists and is loaded."
+            )
+        client = genai.Client(api_key=api_key)
     sources = inspector.load_approved_sources()
 
     results = []
@@ -237,9 +233,9 @@ def main():
     args = parser.parse_args()
 
     if args.all:
-        file_names = sorted(p.name for p in REPAIRED_DOCUMENTS_DIR.glob("*.md"))
+        file_names = sorted(p.name for p in REPAIRED_DOCUMENTS_DIR.iterdir() if p.is_file())
         if not file_names:
-            print(f"No .md files found in {REPAIRED_DOCUMENTS_DIR}", file=sys.stderr)
+            print(f"No files found in {REPAIRED_DOCUMENTS_DIR}", file=sys.stderr)
             sys.exit(1)
     elif args.files:
         file_names = args.files

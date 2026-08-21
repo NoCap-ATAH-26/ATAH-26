@@ -61,11 +61,12 @@ def make_handlers(client: genai.Client, sources: dict[str, str]):
 
 
 def main():
-    api_key = inspector.os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise EnvironmentError("GEMINI_API_KEY not found. Make sure .env exists and is loaded.")
-
-    client = genai.Client(api_key=api_key)
+    client = None
+    if inspector.llm_client.provider() != "ollama":
+        api_key = inspector.os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise EnvironmentError("GEMINI_API_KEY not found. Make sure .env exists and is loaded.")
+        client = genai.Client(api_key=api_key)
     sources = inspector.load_approved_sources()
 
     on_document_ingested, on_repair_needed, on_verification_needed = make_handlers(client, sources)

@@ -154,21 +154,37 @@ def repair_document(
         return refusal
 
     incoming_path = inspector.INCOMING_DOCUMENTS_DIR / file_name
-    incoming_text = incoming_path.read_text(encoding="utf-8")
+    try:
+        incoming_text = incoming_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        # Repair works by having the model rewrite the document's text content
+        # — there's no sensible way to "rewrite" a binary file's bytes, so
+        # this refuses rather than clobbering it with a text blob saved under
+        # the original (e.g. .pdf) filename.
+        refusal = {
+            "file_name": file_name,
+            "status": "quarantined",
+            "repaired_text_path": None,
+            "source_files": inspection.get("source_files", []),
+            "changes_made": [],
+            "reason": (
+                "Repair Agent refused: this is a binary file, and repair works by "
+                "rewriting text content, which isn't possible for a format like "
+                "this. Flagging for manual review instead."
+            ),
+        }
+        inspector.audit_log.log_event(file_name, "repair", refusal)
+        return refusal
+
     prompt = build_repair_prompt(file_name, incoming_text, sources, inspection)
 
-    response = client.models.generate_content(
+    repair_result = inspector.llm_client.generate_json(
+        client=client,
         model=MODEL,
+        system_instruction=SYSTEM_INSTRUCTION,
         contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_INSTRUCTION,
-            response_mime_type="application/json",
-            response_schema=REPAIR_SCHEMA,
-            temperature=0,
-        ),
+        response_schema=REPAIR_SCHEMA,
     )
-
-    repair_result = json.loads(response.text)
 
     # Defensive checks, same philosophy as Inspector: never let bad model
     # output silently corrupt the pipeline.
@@ -197,13 +213,14 @@ def repair_document(
 
 
 def run(file_names: list[str], delay_seconds: float = RATE_LIMIT_DELAY_SECONDS) -> list[dict]:
-    api_key = inspector.os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise EnvironmentError(
-            "GEMINI_API_KEY not found. Make sure .env exists and is loaded."
-        )
-
-    client = genai.Client(api_key=api_key)
+    client = None
+    if inspector.llm_client.provider() != "ollama":
+        api_key = inspector.os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise EnvironmentError(
+                "GEMINI_API_KEY not found. Make sure .env exists and is loaded."
+            )
+        client = genai.Client(api_key=api_key)
     sources = inspector.load_approved_sources()
 
     results = []
@@ -247,9 +264,9 @@ def main():
     args = parser.parse_args()
 
     if args.all:
-        file_names = sorted(p.name for p in inspector.INCOMING_DOCUMENTS_DIR.glob("*.md"))
+        file_names = sorted(p.name for p in inspector.INCOMING_DOCUMENTS_DIR.iterdir() if p.is_file())
         if not file_names:
-            print(f"No .md files found in {inspector.INCOMING_DOCUMENTS_DIR}", file=sys.stderr)
+            print(f"No files found in {inspector.INCOMING_DOCUMENTS_DIR}", file=sys.stderr)
             sys.exit(1)
     elif args.files:
         file_names = args.files
