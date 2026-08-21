@@ -11,27 +11,26 @@ const Spline = dynamic(() => import("@splinetool/react-spline"), { ssr: false })
 const SCENE_URL = "https://prod.spline.design/qcICZX7w7KfztpZr/scene.splinecode";
 
 /**
- * The character, framed on the right side of the page.
+ * The character, rendered full-bleed as the background layer for the whole
+ * page — not confined to a narrow side column. The chat box in ChatRoom
+ * floats on top of it as a separate layer, which is also the point: the
+ * glass panel is meant to show a blurred hint of the character/scene
+ * through it, and that only reads as "blurred" if there's actually
+ * something behind the panel to blur. A narrow side column meant nothing
+ * but flat black sat behind the chat box, so its backdrop-blur had nothing
+ * to do and just looked like a grey tint. The scene itself is authored
+ * off-center (the character reads on the right even at full width), so
+ * this doesn't re-center it — it just stops constraining it to a box
+ * narrower than the character actually needs, which was clipping it.
  *
- * Framing goes through the Spline runtime's own `app.setZoom()` — a thin
+ * Zoom goes through the Spline runtime's own `app.setZoom()` — a thin
  * wrapper over the scene camera's `zoom` (source: node_modules/@splinetool/
  * runtime/build/runtime.js, `setZoom(e,r){r>=0&&(...zoom=r)}`), where `1` is
  * the camera's authored default, values below `1` pull it back (more of the
- * character visible, smaller), and above `1` push in.
- *
- * This replaced an earlier version that tried to crop by making the canvas
- * taller than its container and clipping the overflow, on the assumption
- * that Spline re-fits its camera to the canvas's aspect ratio. That
- * assumption was never actually verified against a real screenshot and
- * turned out to be wrong — it left almost the entire character clipped out
- * of frame. `setZoom` operates on the real camera, so its effect is
- * predictable regardless of container size.
- *
- * `zoom` is a prop rather than a hardcoded value because the correct number
- * depends on how far back the character sits in the scene as authored,
- * which isn't knowable from here — tune it once you can see it rendered.
- * Default is `1`, i.e. no adjustment: the size as originally authored in
- * the scene, before either of the earlier zoom-out attempts.
+ * character visible, smaller), and above `1` push in. `zoom` is a prop
+ * rather than a hardcoded value because the correct number depends on the
+ * scene as authored, which isn't knowable from here — tune it once you can
+ * see it rendered.
  */
 export function ChatSplineCharacter({ zoom = 1 }: { zoom?: number }) {
   const [loaded, setLoaded] = useState(false);
@@ -48,13 +47,11 @@ export function ChatSplineCharacter({ zoom = 1 }: { zoom?: number }) {
   }
 
   return (
-    <div className="pointer-events-none absolute inset-y-0 right-0 w-[46%] overflow-hidden">
-      <div
-        className="pointer-events-auto absolute inset-0 transition-opacity duration-1000"
-        style={{ opacity: loaded ? 1 : 0 }}
-      >
-        <Spline scene={SCENE_URL} onLoad={handleLoad} className="h-full w-full" />
-      </div>
+    <div
+      className="pointer-events-auto absolute inset-0 transition-opacity duration-1000"
+      style={{ opacity: loaded ? 1 : 0 }}
+    >
+      <Spline scene={SCENE_URL} onLoad={handleLoad} className="h-full w-full" />
     </div>
   );
 }

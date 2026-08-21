@@ -96,15 +96,14 @@ export function ChatRoom({ email }: { email: string | null }) {
     <main className="relative min-h-screen grain-bg bg-black text-zinc-100">
       <ChatSplineCharacter />
 
-      {/* pointer-events-none here, not on <main> — this wrapper is unconstrained
-          block width (100% of the page) even though its visible content (the
-          header row, the 54%-wide chat column) covers less than that. Without
-          this, its transparent space over the character's side of the screen
-          would still hit-test as clickable and eat every mouse event meant
-          for the Spline canvas underneath — which is why the character
-          wasn't tracking the cursor. pointer-events is inherited, so it has
-          to be explicitly turned back on for the header's Link and for the
-          chat column below. */}
+      {/* pointer-events-none here, not on <main> — this wrapper's own box
+          covers the full page even though its visible content (the header
+          row, the floating chat card) covers less than that. Without this,
+          its transparent space would still hit-test as clickable and eat
+          every mouse event meant for the Spline layer underneath — which is
+          why the character wasn't tracking the cursor. pointer-events is
+          inherited, so it has to be explicitly turned back on for the
+          header's Link and for the chat card below. */}
       <div className="relative z-10 flex min-h-screen flex-col pointer-events-none">
         <header className="flex items-center justify-between px-6 py-5 sm:px-10">
           <div className="flex items-center gap-3">
@@ -122,15 +121,17 @@ export function ChatRoom({ email }: { email: string | null }) {
           )}
         </header>
 
-        {/* Held to the left half so the conversation never runs under the
-            character occupying the right side of the viewport. */}
-        <div className="pointer-events-auto flex flex-1 flex-col px-6 py-8 sm:px-10 lg:w-[54%]">
-          {/* Kept the white tint very faint on purpose — the previous /5 read
-              as a flat grey panel rather than "glass", since the blur alone
-              barely shows against the page's mostly-flat black. Lower
-              opacity plus the grain texture behind it puts more of the
-              visible effect on the blur itself instead of the tint. */}
-          <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-white/25 bg-white/[0.03] backdrop-blur-md">
+        {/* A floating card, not a half-screen panel — the character now
+            renders full-bleed behind everything (see ChatSplineCharacter),
+            so this just needs to be sized to its own content and left
+            clear of the character's face, not claim half the viewport. */}
+        <div className="pointer-events-auto flex flex-1 flex-col px-6 py-8 sm:px-10">
+          {/* Kept the white tint very faint on purpose — a flat opaque fill
+              would hide the character behind it entirely, and the earlier
+              /5 still read as a plain grey panel rather than "glass". Low
+              opacity + backdrop-blur is what lets a softened hint of the
+              character/grain-bg show through instead. */}
+          <div className="flex w-full max-w-md flex-1 flex-col overflow-hidden rounded-3xl border border-white/25 bg-white/[0.03] backdrop-blur-md">
             <div className="flex-1 space-y-4 overflow-y-auto p-6">
               {messages.map((m) => (
                 <div
