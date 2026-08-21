@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, SendHorizonal } from "lucide-react";
 import { ChatSplineCharacter } from "./ChatSplineCharacter";
+import { ChatSessionsPanel, type ChatSession } from "./ChatSessionsPanel";
 import { createClient } from "@/lib/supabase/client";
 
 type Message = { id: number; role: "user" | "agent"; text: string; error?: boolean };
@@ -27,28 +28,61 @@ export function ChatRoom({ email }: { email: string | null }) {
   const [messages, setMessages] = useState<Message[]>(OPENING);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
-  // Load this user's own history (RLS on chat_messages scopes it) and replay
-  // it ahead of the static opening line.
+  // Load this user's session list (RLS on chat_sessions scopes it to them)
+  // and open the most recently active one, if any.
   useEffect(() => {
     let active = true;
 
-    async function loadHistory() {
+    async function loadSessions() {
+      const { data } = await supabase
+        .from("chat_sessions")
+        .select("id, title, updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(100);
+
+      if (!active || !data) return;
+      setSessions(data);
+      if (data.length > 0) setActiveSessionId(data[0].id);
+    }
+
+    loadSessions();
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
+
+  // Replays the active session's history ahead of the static opening line.
+  // Also runs for activeSessionId === null (a session not yet created, e.g.
+  // right after "New chat"), where it just resets back to the opening line.
+  useEffect(() => {
+    let active = true;
+
+    async function loadMessages() {
+      if (activeSessionId === null) {
+        setMessages(OPENING);
+        return;
+      }
+
       const { data } = await supabase
         .from("chat_messages")
         .select("id, role, content")
+        .eq("session_id", activeSessionId)
         .order("created_at", { ascending: true })
         .limit(200);
 
-      if (!active || !data || data.length === 0) return;
+      if (!active) return;
       setMessages([
         ...OPENING,
-        ...data.map((row) => ({
+        ...(data ?? []).map((row) => ({
           id: row.id,
           role: row.role === "assistant" ? ("agent" as const) : ("user" as const),
           text: row.content,
@@ -56,11 +90,11 @@ export function ChatRoom({ email }: { email: string | null }) {
       ]);
     }
 
-    loadHistory();
+    loadMessages();
     return () => {
       active = false;
     };
-  }, [supabase]);
+  }, [supabase, activeSessionId]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -83,6 +117,25 @@ export function ChatRoom({ email }: { email: string | null }) {
       );
 
     try {
+      // Lazily create the session on the first message of a "New chat" —
+      // no empty session rows for chats that never got typed into.
+      let sessionId = activeSessionId;
+      if (sessionId === null) {
+        const { data: session, error: sessionError } = await supabase
+          .from("chat_sessions")
+          .insert({ title: text.slice(0, 60) })
+          .select("id, title, updated_at")
+          .single();
+
+        if (sessionError || !session) {
+          fail("Could not start a new chat session.");
+          return;
+        }
+        sessionId = session.id;
+        setActiveSessionId(sessionId);
+        setSessions((prev) => [session, ...prev]);
+      }
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,9 +170,19 @@ export function ChatRoom({ email }: { email: string | null }) {
       // Best-effort — a failed save shouldn't interrupt an otherwise-working
       // chat, so this isn't awaited or surfaced to the user.
       void supabase.from("chat_messages").insert([
-        { role: "user", content: text },
-        { role: "assistant", content: fullReply },
+        { session_id: sessionId, role: "user", content: text },
+        { session_id: sessionId, role: "assistant", content: fullReply },
       ]);
+
+      // Bumps the session to the top of the sidebar, matching updated_at
+      // ordering. Fire-and-forget for the same reason as the insert above.
+      const now = new Date().toISOString();
+      void supabase.from("chat_sessions").update({ updated_at: now }).eq("id", sessionId);
+      setSessions((prev) =>
+        [...prev]
+          .map((s) => (s.id === sessionId ? { ...s, updated_at: now } : s))
+          .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+      );
     } catch {
       fail("Lost connection to the chat service.");
     } finally {
@@ -136,7 +199,14 @@ export function ChatRoom({ email }: { email: string | null }) {
     // overflow-hidden: ChatSplineCharacter shifts left with a CSS translate on
     // a full-viewport-width element, which would otherwise push the page's
     // right edge out and create horizontal scroll.
-    <main className="relative min-h-screen overflow-hidden grain-bg bg-black text-zinc-100">
+    //
+    // h-screen (not min-h-screen) on this and the wrapper below: min-h-screen
+    // only sets a floor, so once the message list had enough bubbles to want
+    // more room than the viewport, these containers just grew past it and the
+    // whole page scrolled instead of the message list scrolling internally.
+    // h-screen caps them at the viewport so overflow has to go somewhere —
+    // see the min-h-0 note below for where.
+    <main className="relative h-screen overflow-hidden grain-bg bg-black text-zinc-100">
       <ChatSplineCharacter />
 
       {/* pointer-events-none here, not on <main> — this wrapper's own box
@@ -147,7 +217,7 @@ export function ChatRoom({ email }: { email: string | null }) {
           why the character wasn't tracking the cursor. pointer-events is
           inherited, so it has to be explicitly turned back on for the
           header's Link and for the chat card below. */}
-      <div className="relative z-10 flex min-h-screen flex-col pointer-events-none">
+      <div className="relative z-10 flex h-screen flex-col pointer-events-none">
         <header className="flex items-center justify-between px-6 py-5 sm:px-10">
           <div className="flex items-center gap-3">
             <Link
@@ -166,61 +236,82 @@ export function ChatRoom({ email }: { email: string | null }) {
 
         {/* Back to the original width (54% on large screens, full width
             below that) — the max-w-md floating-card version read as too
-            small. */}
-        <div className="pointer-events-auto flex flex-1 flex-col px-6 py-8 sm:px-10 lg:w-[54%]">
-          {/* Kept the white tint very faint on purpose — a flat opaque fill
-              would hide the character behind it entirely, and the earlier
-              /5 still read as a plain grey panel rather than "glass".
-              backdrop-blur-sm (down from -md) per feedback that -md was too
-              much blur. */}
-          <div className="flex w-full flex-1 flex-col overflow-hidden rounded-3xl border border-white/25 bg-white/[0.03] backdrop-blur-sm">
-            <div className="flex-1 space-y-4 overflow-y-auto p-6">
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={m.role === "user" ? "flex justify-end" : "flex justify-start"}
-                >
-                  <div
-                    className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                      m.role === "user"
-                        ? "bg-zinc-100 text-black"
-                        : m.error
-                          ? "border border-red-500/40 bg-red-500/10 text-red-200"
-                          : "border border-white/10 bg-white/[0.04] text-zinc-200"
-                    }`}
-                  >
-                    {m.text}
-                    {/* Blinking caret while this bubble is still filling in. */}
-                    {m.role === "agent" && busy && !m.text && (
-                      <span className="inline-block h-4 w-2 animate-pulse bg-zinc-400 align-middle" />
-                    )}
-                  </div>
-                </div>
-              ))}
-              <div ref={endRef} />
-            </div>
+            small.
+            min-h-0: a flex item's automatic minimum height is its content
+            size, not 0, unless something overrides that — so without this,
+            this div (and the card + message list inside it) would refuse to
+            shrink to fit the h-screen budget above and grow the page instead,
+            same failure mode min-h-0 fixes here as h-screen fixes above. */}
+        <div className="pointer-events-auto flex min-h-0 flex-1 flex-col px-6 py-8 sm:px-10 lg:w-[54%]">
+          {/* Sessions panel + chat card share this row, still inside the
+              same 54%-width region as before — collapsing the panel gives
+              that width straight back to the card instead of changing how
+              much of the page this whole block claims. */}
+          <div className="flex min-h-0 flex-1 gap-4">
+            <ChatSessionsPanel
+              sessions={sessions}
+              activeSessionId={activeSessionId}
+              open={sidebarOpen}
+              onToggle={() => setSidebarOpen((v) => !v)}
+              onSelect={setActiveSessionId}
+              onNewChat={() => setActiveSessionId(null)}
+            />
 
-            <form
-              onSubmit={send}
-              className="flex items-center gap-2 border-t border-white/10 p-4"
-            >
-              <input
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder={busy ? "Thinking..." : "Send a message"}
-                aria-label="Message"
-                disabled={busy}
-                className="flex-1 rounded-full border border-white/15 bg-white/[0.04] px-5 py-3 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-white/35 disabled:opacity-60"
-              />
-              <button
-                type="submit"
-                disabled={!draft.trim() || busy}
-                aria-label="Send message"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-black transition hover:bg-white disabled:opacity-40"
+            {/* Kept the white tint very faint on purpose — a flat opaque fill
+                would hide the character behind it entirely, and the earlier
+                /5 still read as a plain grey panel rather than "glass".
+                backdrop-blur-sm (down from -md) was still slightly too much;
+                backdrop-blur-[6px] (Tailwind's -sm is 8px) trims it further
+                without going all the way down to -xs (4px). */}
+            <div className="flex w-full flex-1 flex-col overflow-hidden rounded-3xl border border-white/25 bg-white/[0.03] backdrop-blur-[6px]">
+              <div className="flex-1 space-y-4 overflow-y-auto p-6">
+                {messages.map((m) => (
+                  <div
+                    key={m.id}
+                    className={m.role === "user" ? "flex justify-end" : "flex justify-start"}
+                  >
+                    <div
+                      className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                        m.role === "user"
+                          ? "bg-zinc-100 text-black"
+                          : m.error
+                            ? "border border-red-500/40 bg-red-500/10 text-red-200"
+                            : "border border-white/10 bg-white/[0.04] text-zinc-200"
+                      }`}
+                    >
+                      {m.text}
+                      {/* Blinking caret while this bubble is still filling in. */}
+                      {m.role === "agent" && busy && !m.text && (
+                        <span className="inline-block h-4 w-2 animate-pulse bg-zinc-400 align-middle" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <div ref={endRef} />
+              </div>
+
+              <form
+                onSubmit={send}
+                className="flex items-center gap-2 border-t border-white/10 p-4"
               >
-                <SendHorizonal size={16} />
-              </button>
-            </form>
+                <input
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder={busy ? "Thinking..." : "Send a message"}
+                  aria-label="Message"
+                  disabled={busy}
+                  className="flex-1 rounded-full border border-white/15 bg-white/[0.04] px-5 py-3 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-white/35 disabled:opacity-60"
+                />
+                <button
+                  type="submit"
+                  disabled={!draft.trim() || busy}
+                  aria-label="Send message"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-black transition hover:bg-white disabled:opacity-40"
+                >
+                  <SendHorizonal size={16} />
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </div>

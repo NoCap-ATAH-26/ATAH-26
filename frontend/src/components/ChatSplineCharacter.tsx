@@ -41,8 +41,8 @@ const SCENE_URL = "https://prod.spline.design/qcICZX7w7KfztpZr/scene.splinecode"
  * horizontal scroll.
  */
 export function ChatSplineCharacter({
-  zoom = 1,
-  shiftXPercent = -8,
+  zoom = 1.15,
+  shiftXPercent = 22,
 }: {
   zoom?: number;
   shiftXPercent?: number;
