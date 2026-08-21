@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getChatProvider, SYSTEM_PROMPT } from "@/lib/chat/provider";
 import { openAIStreamToText } from "@/lib/chat/stream";
+import { AUDIT_CONTEXT_COLUMNS, AUDIT_CONTEXT_LIMIT, buildAuditContext } from "@/lib/chat/auditContext";
 
 // Guard rails on what we'll forward upstream — this endpoint holds a real API
 // key on hosted providers, so it must not become an open relay.
@@ -48,6 +49,24 @@ export async function POST(request: NextRequest) {
     content: m.content.slice(0, MAX_CHARS),
   }));
 
+  // Grounds the assistant in the pipeline's actual recent activity instead of
+  // just a generic description of what NoCap does. audit_log's own RLS
+  // allows anon read (it's the dashboard's public activity feed), so this
+  // works regardless of anything about the caller beyond already being
+  // signed in per the check above.
+  const { data: auditRows } = await supabase
+    .from("audit_log")
+    .select(AUDIT_CONTEXT_COLUMNS)
+    .order("logged_at", { ascending: false })
+    .limit(AUDIT_CONTEXT_LIMIT);
+  const systemPrompt = [
+    SYSTEM_PROMPT,
+    "",
+    "Below is a snapshot of the pipeline's actual recent activity, current as of this message. Use it to answer questions about real documents, statuses, and results — do not invent details beyond it. If something isn't covered here, say you don't have that information.",
+    "",
+    buildAuditContext(auditRows ?? []),
+  ].join("\n");
+
   const provider = getChatProvider();
 
   let upstream: Response;
@@ -61,7 +80,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: provider.model,
         stream: true,
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
       }),
     });
   } catch {
