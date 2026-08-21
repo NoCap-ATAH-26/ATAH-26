@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { initReducedMotion } from "@/lib/motion-setup";
-import { initSmoothScroll } from "@/lib/smooth-scroll";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { StatTiles } from "@/components/StatTiles";
 import { PipelineStrip } from "@/components/PipelineStrip";
@@ -16,7 +15,13 @@ export function DashboardShell({ email }: { email: string | null }) {
   const { rows, connected } = useAuditLog();
   useEffect(() => {
     initReducedMotion();
-    initSmoothScroll();
+    // Deliberately no initSmoothScroll() here — Lenis is a single
+    // module-level instance shared with the homepage (which needs it for a
+    // scroll-driven 3D tunnel), and reusing it here meant this page could
+    // inherit stale scroll bounds from whichever page created it first,
+    // capping how far this page could scroll. The dashboard's own
+    // animations are plain ScrollTrigger fade-ins that don't need Lenis —
+    // they fire fine on native scroll — so this page just doesn't opt in.
   }, []);
 
   return (
