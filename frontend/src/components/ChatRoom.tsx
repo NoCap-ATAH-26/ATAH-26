@@ -119,51 +119,59 @@ export function ChatRoom({ email }: { email: string | null }) {
 
         {/* Held to the left half so the conversation never runs under the
             character occupying the right side of the viewport. */}
-        <div className="pointer-events-auto flex flex-1 flex-col px-6 pb-8 sm:px-10 lg:w-[54%]">
-          <div className="flex-1 space-y-4 overflow-y-auto py-6">
-            {messages.map((m) => (
-              <div
-                key={m.id}
-                className={m.role === "user" ? "flex justify-end" : "flex justify-start"}
-              >
+        <div className="pointer-events-auto flex flex-1 flex-col px-6 py-8 sm:px-10 lg:w-[54%]">
+          {/* The glass box itself: transparent white fill + backdrop-blur is
+              what makes it read as frosted glass rather than a flat panel —
+              bg-white/5 alone (no blur) would look tinted, not glassy. */}
+          <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-white/25 bg-white/5 backdrop-blur-md">
+            <div className="flex-1 space-y-4 overflow-y-auto p-6">
+              {messages.map((m) => (
                 <div
-                  className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                    m.role === "user"
-                      ? "bg-zinc-100 text-black"
-                      : m.error
-                        ? "border border-red-500/40 bg-red-500/10 text-red-200"
-                        : "border border-white/10 bg-white/[0.04] text-zinc-200"
-                  }`}
+                  key={m.id}
+                  className={m.role === "user" ? "flex justify-end" : "flex justify-start"}
                 >
-                  {m.text}
-                  {/* Blinking caret while this bubble is still filling in. */}
-                  {m.role === "agent" && busy && !m.text && (
-                    <span className="inline-block h-4 w-2 animate-pulse bg-zinc-400 align-middle" />
-                  )}
+                  <div
+                    className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                      m.role === "user"
+                        ? "bg-zinc-100 text-black"
+                        : m.error
+                          ? "border border-red-500/40 bg-red-500/10 text-red-200"
+                          : "border border-white/10 bg-white/[0.04] text-zinc-200"
+                    }`}
+                  >
+                    {m.text}
+                    {/* Blinking caret while this bubble is still filling in. */}
+                    {m.role === "agent" && busy && !m.text && (
+                      <span className="inline-block h-4 w-2 animate-pulse bg-zinc-400 align-middle" />
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-            <div ref={endRef} />
-          </div>
+              ))}
+              <div ref={endRef} />
+            </div>
 
-          <form onSubmit={send} className="flex items-center gap-2">
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder={busy ? "Thinking..." : "Send a message"}
-              aria-label="Message"
-              disabled={busy}
-              className="flex-1 rounded-full border border-white/15 bg-white/[0.04] px-5 py-3 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-white/35 disabled:opacity-60"
-            />
-            <button
-              type="submit"
-              disabled={!draft.trim() || busy}
-              aria-label="Send message"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-black transition hover:bg-white disabled:opacity-40"
+            <form
+              onSubmit={send}
+              className="flex items-center gap-2 border-t border-white/10 p-4"
             >
-              <SendHorizonal size={16} />
-            </button>
-          </form>
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder={busy ? "Thinking..." : "Send a message"}
+                aria-label="Message"
+                disabled={busy}
+                className="flex-1 rounded-full border border-white/15 bg-white/[0.04] px-5 py-3 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-white/35 disabled:opacity-60"
+              />
+              <button
+                type="submit"
+                disabled={!draft.trim() || busy}
+                aria-label="Send message"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-black transition hover:bg-white disabled:opacity-40"
+              >
+                <SendHorizonal size={16} />
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </main>

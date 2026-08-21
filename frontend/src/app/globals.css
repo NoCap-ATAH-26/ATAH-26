@@ -143,10 +143,6 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-* {
-  border-color: var(--color-border);
-}
-
 body {
   background: var(--color-bg);
   color: var(--color-ink);
