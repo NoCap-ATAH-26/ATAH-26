@@ -18,10 +18,11 @@ const SCENE_URL = "https://prod.spline.design/qcICZX7w7KfztpZr/scene.splinecode"
  * through it, and that only reads as "blurred" if there's actually
  * something behind the panel to blur. A narrow side column meant nothing
  * but flat black sat behind the chat box, so its backdrop-blur had nothing
- * to do and just looked like a grey tint. The scene itself is authored
- * off-center (the character reads on the right even at full width), so
- * this doesn't re-center it — it just stops constraining it to a box
- * narrower than the character actually needs, which was clipping it.
+ * to do and just looked like a grey tint. It just stops constraining the
+ * character to a box narrower than it actually needs, which was clipping
+ * it — at full width the scene's own camera actually centers it, not the
+ * right-bias an earlier version of this comment assumed (that was an
+ * artifact of the narrow column, not the scene itself).
  *
  * Zoom goes through the Spline runtime's own `app.setZoom()` — a thin
  * wrapper over the scene camera's `zoom` (source: node_modules/@splinetool/
@@ -31,8 +32,21 @@ const SCENE_URL = "https://prod.spline.design/qcICZX7w7KfztpZr/scene.splinecode"
  * rather than a hardcoded value because the correct number depends on the
  * scene as authored, which isn't knowable from here — tune it once you can
  * see it rendered.
+ *
+ * `shiftXPercent` moves it off that centered default — negative is left.
+ * Done as a CSS translate on the canvas itself (not a Spline camera/object
+ * call) since it's a pure screen-space nudge, not something about the 3D
+ * scene. The parent needs overflow-hidden (set on <main> in ChatRoom) since
+ * shifting a full-viewport-width element sideways would otherwise create
+ * horizontal scroll.
  */
-export function ChatSplineCharacter({ zoom = 1 }: { zoom?: number }) {
+export function ChatSplineCharacter({
+  zoom = 1,
+  shiftXPercent = -8,
+}: {
+  zoom?: number;
+  shiftXPercent?: number;
+}) {
   const [loaded, setLoaded] = useState(false);
 
   function handleLoad(app: Application) {
@@ -49,7 +63,7 @@ export function ChatSplineCharacter({ zoom = 1 }: { zoom?: number }) {
   return (
     <div
       className="pointer-events-auto absolute inset-0 transition-opacity duration-1000"
-      style={{ opacity: loaded ? 1 : 0 }}
+      style={{ opacity: loaded ? 1 : 0, transform: `translateX(${shiftXPercent}%)` }}
     >
       <Spline scene={SCENE_URL} onLoad={handleLoad} className="h-full w-full" />
     </div>

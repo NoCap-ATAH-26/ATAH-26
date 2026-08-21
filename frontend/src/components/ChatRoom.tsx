@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, SendHorizonal } from "lucide-react";
 import { ChatSplineCharacter } from "./ChatSplineCharacter";
+import { createClient } from "@/lib/supabase/client";
 
 type Message = { id: number; role: "user" | "agent"; text: string; error?: boolean };
 
@@ -22,6 +23,7 @@ const OPENING: Message[] = [
  * — a themed token would turn this page pale in light mode.
  */
 export function ChatRoom({ email }: { email: string | null }) {
+  const supabase = useMemo(() => createClient(), []);
   const [messages, setMessages] = useState<Message[]>(OPENING);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -30,6 +32,35 @@ export function ChatRoom({ email }: { email: string | null }) {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
+
+  // Load this user's own history (RLS on chat_messages scopes it) and replay
+  // it ahead of the static opening line.
+  useEffect(() => {
+    let active = true;
+
+    async function loadHistory() {
+      const { data } = await supabase
+        .from("chat_messages")
+        .select("id, role, content")
+        .order("created_at", { ascending: true })
+        .limit(200);
+
+      if (!active || !data || data.length === 0) return;
+      setMessages([
+        ...OPENING,
+        ...data.map((row) => ({
+          id: row.id,
+          role: row.role === "assistant" ? ("agent" as const) : ("user" as const),
+          text: row.content,
+        })),
+      ]);
+    }
+
+    loadHistory();
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -72,14 +103,23 @@ export function ChatRoom({ email }: { email: string | null }) {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let fullReply = "";
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
+        fullReply += chunk;
         setMessages((prev) =>
           prev.map((m) => (m.id === replyId ? { ...m, text: m.text + chunk } : m))
         );
       }
+
+      // Best-effort — a failed save shouldn't interrupt an otherwise-working
+      // chat, so this isn't awaited or surfaced to the user.
+      void supabase.from("chat_messages").insert([
+        { role: "user", content: text },
+        { role: "assistant", content: fullReply },
+      ]);
     } catch {
       fail("Lost connection to the chat service.");
     } finally {
@@ -93,7 +133,10 @@ export function ChatRoom({ email }: { email: string | null }) {
     // backdrop-blur of a flat color is visually a no-op — the box read as a
     // plain grey fill rather than "blurred", because there was nothing there
     // to actually blur.
-    <main className="relative min-h-screen grain-bg bg-black text-zinc-100">
+    // overflow-hidden: ChatSplineCharacter shifts left with a CSS translate on
+    // a full-viewport-width element, which would otherwise push the page's
+    // right edge out and create horizontal scroll.
+    <main className="relative min-h-screen overflow-hidden grain-bg bg-black text-zinc-100">
       <ChatSplineCharacter />
 
       {/* pointer-events-none here, not on <main> — this wrapper's own box
@@ -121,17 +164,16 @@ export function ChatRoom({ email }: { email: string | null }) {
           )}
         </header>
 
-        {/* A floating card, not a half-screen panel — the character now
-            renders full-bleed behind everything (see ChatSplineCharacter),
-            so this just needs to be sized to its own content and left
-            clear of the character's face, not claim half the viewport. */}
-        <div className="pointer-events-auto flex flex-1 flex-col px-6 py-8 sm:px-10">
+        {/* Back to the original width (54% on large screens, full width
+            below that) — the max-w-md floating-card version read as too
+            small. */}
+        <div className="pointer-events-auto flex flex-1 flex-col px-6 py-8 sm:px-10 lg:w-[54%]">
           {/* Kept the white tint very faint on purpose — a flat opaque fill
               would hide the character behind it entirely, and the earlier
-              /5 still read as a plain grey panel rather than "glass". Low
-              opacity + backdrop-blur is what lets a softened hint of the
-              character/grain-bg show through instead. */}
-          <div className="flex w-full max-w-md flex-1 flex-col overflow-hidden rounded-3xl border border-white/25 bg-white/[0.03] backdrop-blur-md">
+              /5 still read as a plain grey panel rather than "glass".
+              backdrop-blur-sm (down from -md) per feedback that -md was too
+              much blur. */}
+          <div className="flex w-full flex-1 flex-col overflow-hidden rounded-3xl border border-white/25 bg-white/[0.03] backdrop-blur-sm">
             <div className="flex-1 space-y-4 overflow-y-auto p-6">
               {messages.map((m) => (
                 <div
