@@ -59,9 +59,15 @@ Environment Variables** and redeploy.
 
 ```
 CHAT_BASE_URL=https://api.groq.com/openai/v1
-CHAT_MODEL=llama-3.3-70b-versatile
+CHAT_MODEL=openai/gpt-oss-20b
 CHAT_API_KEY=<your groq key>
 ```
+
+Groq deprecated its Llama chat models (`llama-3.3-70b-versatile`,
+`llama-3.1-8b-instant`) for free/developer-tier usage on 2026-06-17 — a key
+that used to work may now 404 with `model_not_found` until you switch to one
+of the models above. `openai/gpt-oss-120b` is the larger alternative if you
+need more reasoning power at the cost of some speed.
 
 **OpenRouter** — widest model choice, many free variants:
 
