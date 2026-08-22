@@ -75,12 +75,12 @@ This is also, deliberately, the project's actual Google Cloud infrastructure req
 
 ## Current setup status
 
-- **Gemini**: connected, tested live, working (`.env` → `GEMINI_API_KEY`).
-- **Supabase**: connected, `audit_log` table created and verified with a real insert/read/cleanup (`.env` → `SUPABASE_URL`, `SUPABASE_KEY`).
-- **GCP project**: exists (`atah-505614`, project number `551686615738`), saved to `.env` as `GOOGLE_CLOUD_PROJECT`. Billing/API-enablement status as of this doc: pending, the hackathon's $150 credit is expected within 72 hours. **Note: billing account setup (attaching a payment method) does not require the credit to have landed, Pub/Sub and Cloud Run both have generous perpetual free tiers that hackathon-scale usage won't exceed anyway. The credit just adds safety margin, it isn't a blocker.** `gcloud` CLI install was in progress as of this doc being written.
-- **Pub/Sub topics/subscriptions**: not yet created (needs the `gcloud` commands in `pubsub_bus.py` run once, after billing is enabled).
-- **Cloud Run deployment**: not yet done. This is the piece that actually satisfies the submission's "visible proof of backend deployed on Google Cloud" requirement, still outstanding.
-- **Orchestrator**: code complete, not yet run end-to-end (blocked on the above).
+- **Gemini**: connected, tested live, working (`.env` → `GEMINI_API_KEY`). A Mistral fallback (`LLM_PROVIDER=openai` in `backend/llm_client.py`) also exists for when Gemini's free-tier quota runs out, but stays commented out by default since Gemini is the actual submission requirement.
+- **Supabase**: connected, `audit_log` table created and verified with real inserts (`.env` → `SUPABASE_URL`, `SUPABASE_KEY`). RLS fixed to also cover the `authenticated` role (the original policies only covered `anon`, which silently broke the dashboard for signed-in users).
+- **GCP project**: `nocap-505709` (superseded `atah-505614`, which the account no longer has access to — likely created under a different account). Saved to `.env` as `GOOGLE_CLOUD_PROJECT`.
+- **Pub/Sub topics/subscriptions**: created and verified working. All three topics + their `-sub` subscriptions exist on `nocap-505709` (via Cloud Shell, since local `gcloud auth login`/`application-default login` needed to run directly on the machine hosting the code for ADC to be visible to the Python client libraries).
+- **Orchestrator: proven end-to-end, live.** Ran `python backend/orchestrator.py` + `python backend/publish_incoming.py` for real — dropped two fresh test documents into `incoming_docs/`, both flowed through the full autonomous chain (Inspector → Repair → Verifier, each stage triggered by a real Pub/Sub event, zero manual per-stage commands) and landed in `published_documents/`. Verified against real, timestamped `audit_log` rows. One ran on Gemini specifically, confirming the requirement is actually met, not just Mistral.
+- **Cloud Run deployment**: still not done. This is now the one remaining piece for "visible proof of backend deployed on Google Cloud" — the orchestrator has only been proven running locally so far, not as a deployed unattended service.
 
 ## Branding
 
@@ -90,9 +90,10 @@ This is also, deliberately, the project's actual Google Cloud infrastructure req
 
 ## Known open items
 
-1. **`docs/PITCH.md` and `docs/AI_Cannibalism_Pitch.docx` are stale.** They were written for the original "AI Cannibalism / Autonomous Immune System" framing (an abstract multi-generation model-collapse simulation) before the pivot to NoCap's concrete document-guardian mechanic. They need a rewrite to match what's actually being built. The Canva presentation (design `DAHSP4xWLq4`) has the same problem.
-2. **GCP billing/Pub/Sub/Cloud Run setup** is the critical path right now, nothing about the event-driven architecture can be demoed live until topics exist and the orchestrator is actually deployed.
-3. **No frontend/dashboard yet.** Planned: a live view reading from the Supabase `audit_log` table (pipeline visualization, a Collapse/health indicator per doc, an activity feed narrating decisions in plain language, before/after sample viewer for repaired docs).
-4. **Verifier hasn't been run** on the 4 repaired documents yet, that's the last step to get real before/after/published triples for the demo.
-5. **`backend/test_gemini.py`** looks like dead/broken scratch code (calls a different, likely-incorrect SDK method than the rest of the codebase uses), candidate for deletion.
-6. **Second hackathon entry** (a smaller, genuinely distinct Fortified Enterprise Fleet submission) was discussed as a strategy but not started, contingent on team capacity given the Taskmaster entry is the priority.
+1. **Cloud Run deployment is the last piece of the GCP requirement.** Pub/Sub is proven live (see above); the orchestrator has only run locally so far. Needs a `Dockerfile` + `cloudbuild.yaml` (neither exists yet) and an actual deploy, so the "no human in the loop, runs unattended" claim is backed by something other than a laptop with two terminal windows open.
+2. **No Google Agent Framework (ADK) usage anywhere in the codebase.** The universal hackathon requirements list "a Google Agent Framework (ADK recommended)" alongside Gemini 3.5+ and a GCP service. Inspector/Repair/Verifier are hand-rolled `google-genai` SDK calls, not built on ADK or any agent framework. Worth confirming whether this is actually mandatory before the deadline — if so, it's a bigger gap than anything else on this list.
+3. **`docs/PITCH.md` and `docs/AI_Cannibalism_Pitch.docx` are stale.** They were written for the original "AI Cannibalism / Autonomous Immune System" framing (an abstract multi-generation model-collapse simulation) before the pivot to NoCap's concrete document-guardian mechanic. They need a rewrite to match what's actually being built. The Canva presentation (design `DAHSP4xWLq4`) has the same problem.
+4. **`backend/test_gemini.py`** is dead/broken scratch code (calls `client.interactions.create`, a method that doesn't exist on the SDK the rest of the codebase actually uses — confirmed by reading it, not just suspected). Safe to delete.
+5. **Second hackathon entry** (a smaller, genuinely distinct Fortified Enterprise Fleet submission) was discussed as a strategy but not started, contingent on team capacity given the Taskmaster entry is the priority.
+
+Resolved since the last update to this doc: frontend/dashboard exists and is deployed (Vercel), Verifier has been run (including live via Pub/Sub, see above), Pub/Sub topics/subscriptions are created and proven working end-to-end.
