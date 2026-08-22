@@ -1,0 +1,19 @@
+# Never let real secrets or unrelated project weight into the Cloud Build
+# context -- .env has live API keys, and none of this is needed to run the
+# orchestrator container.
+.env
+.git/
+.venv/
+__pycache__/
+*.pyc
+
+frontend/
+node_modules/
+
+# Generated output, not build input -- Cloud Run's filesystem is ephemeral
+# anyway, these get recreated at runtime.
+published_documents/
+repaired_documents/
+
+assets/
+docs/
