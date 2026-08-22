@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NoCap
 
-## Getting Started
+**The autonomous truth layer for enterprise AI.**
 
-First, run the development server:
+NoCap protects employee policy information from incorrect, outdated, duplicate, unsafe, or AI-generated documents. It compares incoming documents against official company policy, then autonomously approves, quarantines, repairs, verifies, and logs every decision — so employees never act on policy information that's wrong.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Built for the **All Things Agentic Hackathon** — Taskmaster track.
+
+---
+
+## The problem
+
+Enterprise policy documentation drifts. A benefits guide gets copy-pasted and quietly loses accuracy. A well-meaning update introduces a claim that contradicts official policy. A near-duplicate file gets uploaded twice. None of this is malicious — but an employee who trusts the wrong document can make a costly decision based on it.
+
+NoCap catches this automatically, before an employee ever sees the document.
+
+## How it works
+
+```
+Incoming document
+      │
+      ▼
+┌─────────────┐     conflicts with policy?
+│  Inspector  │ ──────────────────────────► needs_repair
+│             │ ──────────────────────────► quarantined (unsafe/duplicate)
+│             │ ──────────────────────────► approved
+└─────────────┘
+      │ needs_repair
+      ▼
+┌─────────────┐
+│    Repair    │  rewrites using ONLY official policy sources
+└─────────────┘
+      │
+      ▼
+┌─────────────┐     still wrong? → quarantined, nothing published
+│   Verifier   │
+│              │ ──► clean? → published_documents/
+└─────────────┘
+      │
+      ▼
+  Firestore audit log (every stage, every decision, timestamped)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Three independent agents, each with one job:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Inspector** (`backend/inspector.py`) — compares an incoming document against every approved policy source and classifies it as `approved`, `needs_repair`, or `quarantined`, citing exactly which source and claim triggered the decision.
+- **Repair** (`backend/repair.py`) — for `needs_repair` documents only, produces a corrected replacement grounded strictly in approved sources. Refuses to touch anything Inspector didn't flag as repairable.
+- **Verifier** (`backend/verifier.py`) — re-checks every repair, strictly, before anything is allowed to publish. If the repair doesn't hold up, nothing goes live.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Every agent enforces structured JSON output via Gemini's `response_schema` (not regex-parsed text), and validates that cited sources actually exist — so a hallucinated citation is rejected before it ever reaches the audit log.
 
-## Learn More
+## Tech stack
 
-To learn more about Next.js, take a look at the following resources:
+| Requirement | What we use |
+|---|---|
+| Gemini 3.5+ (API or Vertex AI) | `gemini-3.5-flash` via the Gemini API |
+| Google Agent Framework | Google **GenAI SDK** (`google-genai`) — used in every backend agent |
+| Google Cloud infrastructure | **Cloud Firestore** — full audit trail, every stage, every decision |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Full compliance breakdown: [`docs/HACKATHON_COMPLIANCE.md`](docs/HACKATHON_COMPLIANCE.md)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Frontend: Next.js, deployed on Vercel, with Supabase for authentication and a live dashboard reading directly from Firestore.
 
-## Deploy on Vercel
+## Project structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+approved_sources/       official policy documents (source of truth)
+incoming_docs/           test documents to be evaluated
+repaired_documents/     output of the Repair agent
+published_documents/    output of the Verifier agent (only clean, verified docs)
+backend/
+  inspector.py
+  repair.py
+  verifier.py
+  firestore_logger.py    shared Firestore audit logging (--log flag)
+frontend/
+  src/app/dashboard/     live audit dashboard (Firestore-backed)
+  src/lib/                Supabase + Firebase clients
+docs/
+  HACKATHON_COMPLIANCE.md
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Running it
+
+### Backend
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install google-genai python-dotenv google-cloud-firestore
+
+# .env with GEMINI_API_KEY=...
+
+python inspector.py remote_work_benefits_update.md
+python inspector.py --all --log        # run + log every incoming document
+python repair.py --all --log           # repair everything Inspector flagged
+python verifier.py --all --log         # verify + publish everything repaired
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Requires `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the six `NEXT_PUBLIC_FIREBASE_*` variables in `.env.local` — see `frontend/src/lib/firebase.ts` for setup details.
+
+Visit `/dashboard` for the live audit view.
+
+## Team
+
+Built by [Namyarajrawat] and [Bhumika Singh] for the All Things Agentic Hackathon.
