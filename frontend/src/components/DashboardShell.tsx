@@ -27,7 +27,7 @@ export function DashboardShell({ email }: { email: string | null }) {
 
   return (
     <main className="ambient-glow flex-1">
-      <SmokeyCursor />
+      <SmokeyCursor splatRadius={0.1} />
       <DashboardHeader connected={connected} email={email} />
 
       <section className="mx-auto max-w-6xl px-6 py-10">

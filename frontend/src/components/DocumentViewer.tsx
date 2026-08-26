@@ -44,7 +44,7 @@ export function DocumentViewer({ rows }: { rows: AuditLogRow[] }) {
         <div className="border-b border-border px-4 py-4 font-mono text-xs uppercase tracking-widest text-ink-muted">
           Documents
         </div>
-        <div className="max-h-[360px] overflow-y-auto p-2">
+        <div className="scrollbar-ghost max-h-[360px] overflow-y-auto p-2">
           {files.map((f) => (
             <button
               key={f.file_name}

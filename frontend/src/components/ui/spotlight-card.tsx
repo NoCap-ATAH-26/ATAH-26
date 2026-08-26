@@ -77,11 +77,16 @@ const GlowCard = React.forwardRef<HTMLDivElement, GlowCardProps>(function GlowCa
     const baseStyles: Record<string, string | number> = {
       "--base": base,
       "--spread": spread,
-      "--radius": "14",
+      // Kept in sync with the rounded-[28px] class below — the pointer-glow
+      // ::before/::after pseudo-elements (globals.css) mask themselves to
+      // this same radius, so a mismatch here would show square glow corners
+      // poking out past the card's actual rounded edge.
+      "--radius": "28",
       "--border": "3",
       // Ink-based rather than a fixed neutral gray, so the backdrop and
       // border read correctly against both the true-black and light themes.
-      "--backdrop": "color-mix(in srgb, var(--color-ink) 10%, transparent)",
+      // Bumped from 10% for a more visible frosted-glass tint.
+      "--backdrop": "color-mix(in srgb, var(--color-ink) 14%, transparent)",
       "--backup-border": "var(--backdrop)",
       "--size": "200",
       "--outer": "1",
@@ -99,6 +104,11 @@ const GlowCard = React.forwardRef<HTMLDivElement, GlowCardProps>(function GlowCa
       backgroundPosition: "50% 50%",
       backgroundAttachment: "fixed",
       border: "var(--border-size) solid var(--backup-border)",
+      // Elevation + a faint glass-edge highlight. Set inline rather than as
+      // a Tailwind shadow-[...] class: a comma-separated multi-layer value
+      // inside one arbitrary bracket wasn't surviving Tailwind's arbitrary-
+      // value parsing (computed box-shadow came out as all-zero).
+      boxShadow: "0 24px 60px -20px rgba(0,0,0,0.7), inset 0 1px 0 0 rgba(255,255,255,0.08)",
       position: "relative",
       touchAction: "none",
     };
@@ -116,9 +126,11 @@ const GlowCard = React.forwardRef<HTMLDivElement, GlowCardProps>(function GlowCa
       style={getInlineStyles()}
       className={`
         ${getSizeClasses()}
-        ${!customSize ? "aspect-[3/4] grid grid-rows-[1fr_auto] shadow-[0_1rem_2rem_-1rem_black] p-4 gap-4 backdrop-blur-[5px]" : "backdrop-blur-[5px]"}
-        rounded-2xl
+        ${!customSize ? "aspect-[3/4] grid grid-rows-[1fr_auto] p-4 gap-4" : ""}
+        rounded-[28px]
         relative
+        backdrop-blur-xl
+        backdrop-saturate-150
         ${className}
       `}
     >

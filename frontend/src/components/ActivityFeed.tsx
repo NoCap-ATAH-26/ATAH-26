@@ -57,7 +57,7 @@ export function ActivityFeed({ rows }: { rows: AuditLogRow[] }) {
         <Radio size={14} className="text-accent-mauve" />
         <h3 className="font-mono text-xs uppercase tracking-widest text-ink-muted">Activity Feed</h3>
       </div>
-      <div ref={scope} className="flex-1 space-y-1 overflow-y-auto px-3 py-3">
+      <div ref={scope} className="scrollbar-ghost flex-1 space-y-1 overflow-y-auto px-3 py-3">
         {reversed.length === 0 && (
           <div className="px-2 py-8 text-center text-sm text-ink-faint">No activity yet.</div>
         )}

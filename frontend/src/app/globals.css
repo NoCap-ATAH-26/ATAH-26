@@ -187,44 +187,17 @@ body {
     0 0 40px -12px color-mix(in srgb, var(--color-accent-lime) 35%, transparent);
 }
 
-/* Neon glow accents — colored halos on true black, echoing an ops-console
-   HUD rather than a soft consumer glow. Four hues, each with one job: mint
-   (system/data surfaces), mauve (the "human"/narrative surface), blue and
-   gold (decorative-only, spread across the pipeline stages and ambient wash
-   so the dashboard reads as genuinely multicolor rather than a two-hue
-   repeat). Kept as discrete utilities rather than folded into .card-surface,
-   since glow is meant to mark specific emphasis, not become the default
-   card look. */
-.glow-mint {
-  border-color: color-mix(in srgb, var(--color-accent-lime) 60%, var(--color-border)) !important;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-accent-lime) 55%, transparent),
-    0 0 20px 0px color-mix(in srgb, var(--color-accent-lime) 38%, transparent),
-    0 0 46px 3px color-mix(in srgb, var(--color-accent-lime) 20%, transparent);
-}
-
-.glow-mauve {
-  border-color: color-mix(in srgb, var(--color-accent-mauve) 60%, var(--color-border)) !important;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-accent-mauve) 55%, transparent),
-    0 0 20px 0px color-mix(in srgb, var(--color-accent-mauve) 38%, transparent),
-    0 0 46px 3px color-mix(in srgb, var(--color-accent-mauve) 20%, transparent);
-}
-
+/* Neon glow accent — colored halo on true black, echoing an ops-console HUD.
+   Only .glow-blue survives here (DashboardHeader's nav hover state); the
+   mint/mauve/gold siblings that used to mark the pipeline stage boxes were
+   removed at the dashboard's request — those boxes now use a plain tinted
+   border instead (see PipelineStrip.tsx). */
 .glow-blue {
   border-color: color-mix(in srgb, var(--color-accent-blue) 60%, var(--color-border)) !important;
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--color-accent-blue) 55%, transparent),
     0 0 20px 0px color-mix(in srgb, var(--color-accent-blue) 38%, transparent),
     0 0 46px 3px color-mix(in srgb, var(--color-accent-blue) 20%, transparent);
-}
-
-.glow-gold {
-  border-color: color-mix(in srgb, var(--color-accent-gold) 60%, var(--color-border)) !important;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-accent-gold) 55%, transparent),
-    0 0 20px 0px color-mix(in srgb, var(--color-accent-gold) 38%, transparent),
-    0 0 46px 3px color-mix(in srgb, var(--color-accent-gold) 20%, transparent);
 }
 
 /* Ambient background glow — two large, softly blurred color blooms sitting
@@ -365,6 +338,33 @@ body {
 
 :root[data-theme="light"] .grain-bg::before {
   opacity: 0.02;
+}
+
+/* Thin, near-invisible scrollbar for the scrollable regions inside dashboard
+   cards (PipelineStrip's horizontal strip, ActivityFeed's list, DocumentViewer's
+   file list) — a default OS scrollbar reads as a jarring gray bar against the
+   glass card surfaces. */
+.scrollbar-ghost {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 25%, transparent) transparent;
+}
+
+.scrollbar-ghost::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-ghost::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-ghost::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--color-ink) 25%, transparent);
+  border-radius: 9999px;
+}
+
+.scrollbar-ghost::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--color-ink) 42%, transparent);
 }
 
 /* HUD grid overlay — faint lines with crosshair marks at intersections,

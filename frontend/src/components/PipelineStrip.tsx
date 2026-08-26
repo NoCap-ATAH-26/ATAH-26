@@ -37,7 +37,6 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
       icon: FileInput,
       count: counts.ingested,
       colorVar: "var(--color-accent-lime)",
-      glowClass: "glow-mint",
     },
     {
       key: "inspector",
@@ -45,7 +44,6 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
       icon: ScanSearch,
       count: counts.inspector,
       colorVar: "var(--color-accent-blue)",
-      glowClass: "glow-blue",
     },
     {
       key: "repair",
@@ -53,7 +51,6 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
       icon: Wrench,
       count: counts.repair,
       colorVar: "var(--color-accent-gold)",
-      glowClass: "glow-gold",
     },
     {
       key: "verifier",
@@ -61,7 +58,6 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
       icon: BadgeCheck,
       count: counts.verifier,
       colorVar: "var(--color-accent-mauve)",
-      glowClass: "glow-mauve",
     },
   ];
 
@@ -98,7 +94,7 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
   );
 
   return (
-    <GlowCard ref={scope} customSize glowColor="blue" className="overflow-x-auto p-6">
+    <GlowCard ref={scope} customSize glowColor="blue" className="scrollbar-ghost overflow-x-auto p-6">
       <div className="mb-5">
         <h3 className="font-display text-xl italic">The Pipeline, Live</h3>
         <p className="text-xs text-ink-muted">Event-driven: Pub/Sub routes each stage automatically, no human between steps</p>
@@ -107,9 +103,12 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
         {stages.map((s, i) => (
           <div key={s.key} className="flex items-center gap-2">
             <div
-              className={`pipeline-node flex w-32 flex-col items-center gap-2 rounded-xl border px-4 py-5 ${
-                s.count > 0 ? `${s.glowClass} border-transparent bg-surface-2` : "border-border bg-surface-2"
-              }`}
+              className="pipeline-node flex w-32 flex-col items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 py-5"
+              style={
+                s.count > 0
+                  ? { borderColor: `color-mix(in srgb, ${s.colorVar} 45%, var(--color-border))` }
+                  : undefined
+              }
             >
               <s.icon size={20} style={{ color: s.colorVar }} />
               <span className="font-mono text-2xl tabular-nums">{s.count}</span>
