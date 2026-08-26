@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import type { AuditLogRow, Status } from "@/lib/types";
 import { STATUS_META } from "@/lib/types";
+import { GlowCard } from "@/components/ui/spotlight-card";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -86,7 +87,7 @@ export function ScoreChart({ rows }: { rows: AuditLogRow[] }) {
   );
 
   return (
-    <div ref={scope} className="card-surface glow-mint p-6">
+    <GlowCard ref={scope} customSize glowColor="mint" className="p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-xl italic">Risk Score, Live</h3>
@@ -151,6 +152,6 @@ export function ScoreChart({ rows }: { rows: AuditLogRow[] }) {
           </AreaChart>
         </ResponsiveContainer>
       )}
-    </div>
+    </GlowCard>
   );
 }

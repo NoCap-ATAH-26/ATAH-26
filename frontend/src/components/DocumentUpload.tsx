@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, FolderUp, Loader2, UploadCloud } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { GlowCard } from "@/components/ui/spotlight-card";
 
 const BUCKET = "incoming-uploads";
 // Free-tier friendly ceiling — big enough for any real policy document,
@@ -71,7 +72,7 @@ export function DocumentUpload() {
   }
 
   return (
-    <div className="card-surface p-5">
+    <GlowCard customSize glowColor="mint" className="p-5">
       <div className="mb-4 flex items-center gap-2">
         <UploadCloud size={14} className="text-accent-lime" />
         <h3 className="font-mono text-xs uppercase tracking-widest text-ink-muted">
@@ -173,6 +174,6 @@ export function DocumentUpload() {
         Uploaded files are picked up by the pipeline within a few seconds of the
         watcher&rsquo;s next poll.
       </p>
-    </div>
+    </GlowCard>
   );
 }

@@ -6,6 +6,7 @@ import { FileText } from "lucide-react";
 import type { AuditLogRow } from "@/lib/types";
 import { STAGE_LABEL } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
+import { GlowCard } from "@/components/ui/spotlight-card";
 
 function latestByFile(rows: AuditLogRow[]) {
   const map = new Map<string, AuditLogRow>();
@@ -38,7 +39,7 @@ export function DocumentViewer({ rows }: { rows: AuditLogRow[] }) {
   if (files.length === 0) return null;
 
   return (
-    <div className="card-surface grid grid-cols-1 md:grid-cols-[240px_1fr]">
+    <GlowCard customSize glowColor="gold" className="grid grid-cols-1 md:grid-cols-[240px_1fr]">
       <div className="border-b border-border md:border-b-0 md:border-r">
         <div className="border-b border-border px-4 py-4 font-mono text-xs uppercase tracking-widest text-ink-muted">
           Documents
@@ -114,6 +115,6 @@ export function DocumentViewer({ rows }: { rows: AuditLogRow[] }) {
           </>
         )}
       </div>
-    </div>
+    </GlowCard>
   );
 }

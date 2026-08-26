@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { FileCheck2, ShieldAlert, Wrench, Gauge } from "lucide-react";
 import type { AuditLogRow } from "@/lib/types";
+import { GlowCard } from "@/components/ui/spotlight-card";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -32,10 +33,10 @@ export function StatTiles({ rows }: { rows: AuditLogRow[] }) {
         : 0;
 
     return [
-      { label: "Documents Processed", value: latest.length, icon: FileCheck2, color: "var(--color-accent-blue)" },
-      { label: "Approved / Repaired", value: approved + repaired, icon: Wrench, color: "var(--color-status-good)" },
-      { label: "Quarantined", value: quarantined, icon: ShieldAlert, color: "var(--color-status-critical)" },
-      { label: "Avg Risk Score", value: avgRisk, icon: Gauge, color: "var(--color-status-warning)" },
+      { label: "Documents Processed", value: latest.length, icon: FileCheck2, color: "var(--color-accent-blue)", glow: "blue" as const },
+      { label: "Approved / Repaired", value: approved + repaired, icon: Wrench, color: "var(--color-status-good)", glow: "green" as const },
+      { label: "Quarantined", value: quarantined, icon: ShieldAlert, color: "var(--color-status-critical)", glow: "red" as const },
+      { label: "Avg Risk Score", value: avgRisk, icon: Gauge, color: "var(--color-status-warning)", glow: "gold" as const },
     ];
   }, [rows]);
 
@@ -59,7 +60,7 @@ export function StatTiles({ rows }: { rows: AuditLogRow[] }) {
   return (
     <div ref={scope} className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {stats.map((s) => (
-        <div key={s.label} className="stat-tile card-surface p-5">
+        <GlowCard key={s.label} customSize glowColor={s.glow} className="stat-tile p-5">
           <div
             className="flex h-8 w-8 items-center justify-center rounded-full"
             style={{
@@ -73,7 +74,7 @@ export function StatTiles({ rows }: { rows: AuditLogRow[] }) {
             {s.value}
           </div>
           <div className="mt-1 text-xs text-ink-muted">{s.label}</div>
-        </div>
+        </GlowCard>
       ))}
     </div>
   );

@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { FileInput, ScanSearch, Wrench, BadgeCheck, ArrowRight } from "lucide-react";
 import type { AuditLogRow } from "@/lib/types";
+import { GlowCard } from "@/components/ui/spotlight-card";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -97,7 +98,7 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
   );
 
   return (
-    <div ref={scope} className="card-surface overflow-x-auto p-6">
+    <GlowCard ref={scope} customSize glowColor="blue" className="overflow-x-auto p-6">
       <div className="mb-5">
         <h3 className="font-display text-xl italic">The Pipeline, Live</h3>
         <p className="text-xs text-ink-muted">Event-driven: Pub/Sub routes each stage automatically, no human between steps</p>
@@ -130,6 +131,6 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
           </div>
         ))}
       </div>
-    </div>
+    </GlowCard>
   );
 }

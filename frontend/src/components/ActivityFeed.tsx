@@ -6,6 +6,7 @@ import { Radio } from "lucide-react";
 import type { AuditLogRow } from "@/lib/types";
 import { STAGE_LABEL } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
+import { GlowCard } from "@/components/ui/spotlight-card";
 
 function narrate(row: AuditLogRow): string {
   const stage = STAGE_LABEL[row.stage];
@@ -51,7 +52,7 @@ export function ActivityFeed({ rows }: { rows: AuditLogRow[] }) {
   }, [rows.length]);
 
   return (
-    <div className="card-surface glow-mauve flex max-h-[420px] flex-col overflow-hidden">
+    <GlowCard customSize glowColor="mauve" className="flex max-h-[420px] flex-col overflow-hidden">
       <div className="flex items-center gap-2 border-b border-border px-5 py-4">
         <Radio size={14} className="text-accent-mauve" />
         <h3 className="font-mono text-xs uppercase tracking-widest text-ink-muted">Activity Feed</h3>
@@ -76,6 +77,6 @@ export function ActivityFeed({ rows }: { rows: AuditLogRow[] }) {
           </div>
         ))}
       </div>
-    </div>
+    </GlowCard>
   );
 }
