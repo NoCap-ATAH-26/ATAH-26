@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/pubsub/*.py": {
+      "maxDuration": 60,
+      "includeFiles": "api/_lib/**"
+    }
+  }
+}

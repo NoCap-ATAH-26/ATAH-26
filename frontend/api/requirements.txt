@@ -1,0 +1,5 @@
+google-genai>=2.18.1
+supabase>=2.9.0
+google-cloud-pubsub>=2.23.0
+google-auth>=2.35.0
+requests>=2.31.0
