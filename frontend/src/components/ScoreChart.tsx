@@ -119,9 +119,8 @@ export function ScoreChart({ rows }: { rows: AuditLogRow[] }) {
                   a flat CSS drop-shadow (recharts' Area stroke isn't a real
                   DOM node CSS filters can target reliably). */}
               <filter id="riskLineGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="7" result="blur" />
+                <feGaussianBlur stdDeviation="4" result="blur" />
                 <feMerge>
-                  <feMergeNode in="blur" />
                   <feMergeNode in="blur" />
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>

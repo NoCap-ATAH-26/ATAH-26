@@ -21,8 +21,8 @@ export function StatusBadge({ status, size = "md" }: { status: Status; size?: "s
       style={{
         color: meta.colorVar,
         borderColor: meta.colorVar,
-        backgroundColor: `color-mix(in srgb, ${meta.colorVar} 22%, transparent)`,
-        boxShadow: `0 0 16px 1px color-mix(in srgb, ${meta.colorVar} 85%, transparent), 0 0 40px 4px color-mix(in srgb, ${meta.colorVar} 45%, transparent)`,
+        backgroundColor: `color-mix(in srgb, ${meta.colorVar} 14%, transparent)`,
+        boxShadow: `0 0 12px 0px color-mix(in srgb, ${meta.colorVar} 45%, transparent)`,
       }}
     >
       <Icon size={size === "sm" ? 12 : 14} />

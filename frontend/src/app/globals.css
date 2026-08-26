@@ -196,39 +196,35 @@ body {
    since glow is meant to mark specific emphasis, not become the default
    card look. */
 .glow-mint {
-  border-color: var(--color-accent-lime) !important;
+  border-color: color-mix(in srgb, var(--color-accent-lime) 60%, var(--color-border)) !important;
   box-shadow:
-    0 0 0 1px var(--color-accent-lime),
-    0 0 24px 2px color-mix(in srgb, var(--color-accent-lime) 75%, transparent),
-    0 0 70px 6px color-mix(in srgb, var(--color-accent-lime) 55%, transparent),
-    0 0 140px 20px color-mix(in srgb, var(--color-accent-lime) 30%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--color-accent-lime) 55%, transparent),
+    0 0 20px 0px color-mix(in srgb, var(--color-accent-lime) 38%, transparent),
+    0 0 46px 3px color-mix(in srgb, var(--color-accent-lime) 20%, transparent);
 }
 
 .glow-mauve {
-  border-color: var(--color-accent-mauve) !important;
+  border-color: color-mix(in srgb, var(--color-accent-mauve) 60%, var(--color-border)) !important;
   box-shadow:
-    0 0 0 1px var(--color-accent-mauve),
-    0 0 24px 2px color-mix(in srgb, var(--color-accent-mauve) 75%, transparent),
-    0 0 70px 6px color-mix(in srgb, var(--color-accent-mauve) 55%, transparent),
-    0 0 140px 20px color-mix(in srgb, var(--color-accent-mauve) 30%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--color-accent-mauve) 55%, transparent),
+    0 0 20px 0px color-mix(in srgb, var(--color-accent-mauve) 38%, transparent),
+    0 0 46px 3px color-mix(in srgb, var(--color-accent-mauve) 20%, transparent);
 }
 
 .glow-blue {
-  border-color: var(--color-accent-blue) !important;
+  border-color: color-mix(in srgb, var(--color-accent-blue) 60%, var(--color-border)) !important;
   box-shadow:
-    0 0 0 1px var(--color-accent-blue),
-    0 0 24px 2px color-mix(in srgb, var(--color-accent-blue) 75%, transparent),
-    0 0 70px 6px color-mix(in srgb, var(--color-accent-blue) 55%, transparent),
-    0 0 140px 20px color-mix(in srgb, var(--color-accent-blue) 30%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--color-accent-blue) 55%, transparent),
+    0 0 20px 0px color-mix(in srgb, var(--color-accent-blue) 38%, transparent),
+    0 0 46px 3px color-mix(in srgb, var(--color-accent-blue) 20%, transparent);
 }
 
 .glow-gold {
-  border-color: var(--color-accent-gold) !important;
+  border-color: color-mix(in srgb, var(--color-accent-gold) 60%, var(--color-border)) !important;
   box-shadow:
-    0 0 0 1px var(--color-accent-gold),
-    0 0 24px 2px color-mix(in srgb, var(--color-accent-gold) 75%, transparent),
-    0 0 70px 6px color-mix(in srgb, var(--color-accent-gold) 55%, transparent),
-    0 0 140px 20px color-mix(in srgb, var(--color-accent-gold) 30%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--color-accent-gold) 55%, transparent),
+    0 0 20px 0px color-mix(in srgb, var(--color-accent-gold) 38%, transparent),
+    0 0 46px 3px color-mix(in srgb, var(--color-accent-gold) 20%, transparent);
 }
 
 /* Ambient background glow — two large, softly blurred color blooms sitting
@@ -247,23 +243,23 @@ body {
   pointer-events: none;
   background:
     radial-gradient(
-      900px 640px at 10% 0%,
-      color-mix(in srgb, var(--color-accent-lime) 40%, transparent),
+      700px 500px at 10% 0%,
+      color-mix(in srgb, var(--color-accent-lime) 20%, transparent),
       transparent 65%
     ),
     radial-gradient(
-      900px 700px at 92% 60%,
-      color-mix(in srgb, var(--color-accent-mauve) 38%, transparent),
+      700px 550px at 92% 60%,
+      color-mix(in srgb, var(--color-accent-mauve) 18%, transparent),
       transparent 65%
     ),
     radial-gradient(
-      700px 500px at 30% 95%,
-      color-mix(in srgb, var(--color-accent-blue) 32%, transparent),
+      550px 400px at 30% 95%,
+      color-mix(in srgb, var(--color-accent-blue) 15%, transparent),
       transparent 70%
     ),
     radial-gradient(
-      620px 460px at 60% 25%,
-      color-mix(in srgb, var(--color-accent-gold) 24%, transparent),
+      480px 360px at 60% 25%,
+      color-mix(in srgb, var(--color-accent-gold) 11%, transparent),
       transparent 70%
     );
 }

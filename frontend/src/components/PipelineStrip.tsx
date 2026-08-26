@@ -121,7 +121,7 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
                   style={{
                     backgroundImage: `linear-gradient(90deg, var(--color-border) 0%, ${s.colorVar} 50%, var(--color-border) 100%)`,
                     backgroundSize: "200% 100%",
-                    filter: `drop-shadow(0 0 10px color-mix(in srgb, ${s.colorVar} 90%, transparent))`,
+                    filter: `drop-shadow(0 0 6px color-mix(in srgb, ${s.colorVar} 60%, transparent))`,
                   }}
                 />
                 <ArrowRight size={14} className="text-ink-faint" />

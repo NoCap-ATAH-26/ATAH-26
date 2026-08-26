@@ -63,8 +63,8 @@ export function StatTiles({ rows }: { rows: AuditLogRow[] }) {
           <div
             className="flex h-8 w-8 items-center justify-center rounded-full"
             style={{
-              boxShadow: `0 0 20px 2px color-mix(in srgb, ${s.color} 80%, transparent), 0 0 48px 6px color-mix(in srgb, ${s.color} 45%, transparent)`,
-              backgroundColor: `color-mix(in srgb, ${s.color} 22%, transparent)`,
+              boxShadow: `0 0 14px 1px color-mix(in srgb, ${s.color} 45%, transparent)`,
+              backgroundColor: `color-mix(in srgb, ${s.color} 14%, transparent)`,
             }}
           >
             <s.icon size={18} style={{ color: s.color }} />
