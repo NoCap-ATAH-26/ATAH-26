@@ -175,6 +175,57 @@ body {
     0 0 40px -12px color-mix(in srgb, var(--color-accent-lime) 35%, transparent);
 }
 
+/* Neon glow accents — colored halos on true black, echoing an ops-console
+   HUD rather than a soft consumer glow. Two hues only, both already in the
+   palette: mint for system/data surfaces, mauve for the "human" surfaces
+   (see DESIGN.md's assignment of mauve as the one warm note). Kept as
+   discrete utilities rather than folded into .card-surface, since glow is
+   meant to mark specific emphasis, not become the new default card look. */
+.glow-mint {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-accent-lime) 45%, var(--color-border)),
+    0 0 32px -8px color-mix(in srgb, var(--color-accent-lime) 55%, transparent),
+    0 0 80px -32px color-mix(in srgb, var(--color-accent-lime) 70%, transparent);
+}
+
+.glow-mauve {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-accent-mauve) 45%, var(--color-border)),
+    0 0 32px -8px color-mix(in srgb, var(--color-accent-mauve) 55%, transparent),
+    0 0 80px -32px color-mix(in srgb, var(--color-accent-mauve) 70%, transparent);
+}
+
+/* Ambient background glow — two large, softly blurred color blooms sitting
+   behind the dashboard content (z-index below cards). Purely atmospheric:
+   it's what reads as "colored light in a dark room" in the reference, rather
+   than flat black. Fixed so it doesn't scroll away with tall pages. */
+.ambient-glow {
+  position: relative;
+}
+
+.ambient-glow::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      480px 320px at 12% 8%,
+      color-mix(in srgb, var(--color-accent-lime) 16%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      520px 360px at 88% 55%,
+      color-mix(in srgb, var(--color-accent-mauve) 14%, transparent),
+      transparent 70%
+    );
+}
+
+:root[data-theme="light"] .ambient-glow::before {
+  display: none;
+}
+
 .grain-bg {
   position: relative;
   isolation: isolate;

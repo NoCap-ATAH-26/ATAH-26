@@ -86,7 +86,7 @@ export function ScoreChart({ rows }: { rows: AuditLogRow[] }) {
   );
 
   return (
-    <div ref={scope} className="card-surface p-6">
+    <div ref={scope} className="card-surface glow-mint p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-xl italic">Risk Score, Live</h3>
@@ -114,6 +114,17 @@ export function ScoreChart({ rows }: { rows: AuditLogRow[] }) {
                 <stop offset="0%" stopColor="var(--color-accent-lime)" stopOpacity={0.25} />
                 <stop offset="100%" stopColor="var(--color-accent-lime)" stopOpacity={0} />
               </linearGradient>
+              {/* Neon-line glow: a blurred copy of the stroke sits under the
+                  crisp one, which is what sells "lit from within" rather than
+                  a flat CSS drop-shadow (recharts' Area stroke isn't a real
+                  DOM node CSS filters can target reliably). */}
+              <filter id="riskLineGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
             </defs>
             <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="t" hide />
@@ -130,6 +141,7 @@ export function ScoreChart({ rows }: { rows: AuditLogRow[] }) {
               dataKey="risk_score"
               stroke="var(--color-accent-lime)"
               strokeWidth={2}
+              filter="url(#riskLineGlow)"
               fill="url(#riskFill)"
               dot={CustomDot}
               activeDot={{ r: 6 }}

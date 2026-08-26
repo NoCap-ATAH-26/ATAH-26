@@ -60,7 +60,15 @@ export function StatTiles({ rows }: { rows: AuditLogRow[] }) {
     <div ref={scope} className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {stats.map((s) => (
         <div key={s.label} className="stat-tile card-surface p-5">
-          <s.icon size={18} style={{ color: s.color }} />
+          <div
+            className="flex h-8 w-8 items-center justify-center rounded-full"
+            style={{
+              boxShadow: `0 0 20px -4px color-mix(in srgb, ${s.color} 60%, transparent)`,
+              backgroundColor: `color-mix(in srgb, ${s.color} 14%, transparent)`,
+            }}
+          >
+            <s.icon size={18} style={{ color: s.color }} />
+          </div>
           <div className="mt-4 font-mono text-3xl font-medium tabular-nums" style={{ color: s.color }}>
             {s.value}
           </div>

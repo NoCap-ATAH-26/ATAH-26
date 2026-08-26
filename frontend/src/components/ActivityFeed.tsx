@@ -51,9 +51,9 @@ export function ActivityFeed({ rows }: { rows: AuditLogRow[] }) {
   }, [rows.length]);
 
   return (
-    <div className="card-surface flex max-h-[420px] flex-col overflow-hidden">
+    <div className="card-surface glow-mauve flex max-h-[420px] flex-col overflow-hidden">
       <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-        <Radio size={14} className="text-accent-lime" />
+        <Radio size={14} className="text-accent-mauve" />
         <h3 className="font-mono text-xs uppercase tracking-widest text-ink-muted">Activity Feed</h3>
       </div>
       <div ref={scope} className="flex-1 space-y-1 overflow-y-auto px-3 py-3">

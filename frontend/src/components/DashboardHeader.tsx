@@ -34,13 +34,20 @@ export function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-5 font-mono text-xs uppercase tracking-widest text-ink-muted">
-        <span className={connected ? "text-accent-lime" : ""}>
+        <span
+          className={connected ? "text-accent-lime" : ""}
+          style={
+            connected
+              ? { textShadow: "0 0 10px color-mix(in srgb, var(--color-accent-lime) 70%, transparent)" }
+              : undefined
+          }
+        >
           Status[{connected ? "●" : "○"}]
         </span>
         {email && <span className="hidden normal-case tracking-normal text-ink-muted sm:inline">{email}</span>}
         <Link
           href="/dashboard/chat"
-          className="flex items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3 py-1.5 text-ink transition hover:bg-surface-2"
+          className="flex items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3 py-1.5 text-ink transition hover:glow-mint hover:border-transparent hover:bg-surface-2"
         >
           <MessageSquare size={13} />
           Chat

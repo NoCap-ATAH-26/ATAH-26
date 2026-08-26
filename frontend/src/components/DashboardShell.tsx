@@ -25,7 +25,7 @@ export function DashboardShell({ email }: { email: string | null }) {
   }, []);
 
   return (
-    <main className="flex-1">
+    <main className="ambient-glow flex-1">
       <DashboardHeader connected={connected} email={email} />
 
       <section className="mx-auto max-w-6xl px-6 py-10">
