@@ -1604,7 +1604,14 @@ export default function SmokeyCursor({
   if (!mounted || disabled) return null;
 
   return createPortal(
-    <div className={`fixed top-0 left-0 z-[99999] pointer-events-none w-full h-full cursor-none ${className}`}>
+    // z-0 rather than the library's default z-[99999]: this canvas is
+    // portalled to the end of <body>, so without an explicit low z-index it
+    // would paint on top of everything (including page content) by DOM
+    // order alone. Callers that mount page content wrap it in a positioned
+    // element with a higher z-index (see DashboardShell.tsx / page.tsx's
+    // <main>) so the smoke sits behind cards/content but still above the
+    // page's own background.
+    <div className={`fixed top-0 left-0 z-0 pointer-events-none w-full h-full cursor-none ${className}`}>
       <canvas
         ref={canvasRef}
         id="fluid"

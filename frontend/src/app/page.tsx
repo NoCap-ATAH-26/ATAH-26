@@ -25,7 +25,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="flex-1">
+    <main className="relative z-10 flex-1">
       <SmokeyCursor color="#E7DADA" />
       <Hero />
       <SectionBlend />

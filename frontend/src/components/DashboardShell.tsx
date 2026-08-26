@@ -26,7 +26,7 @@ export function DashboardShell({ email }: { email: string | null }) {
   }, []);
 
   return (
-    <main className="ambient-glow flex-1">
+    <main className="ambient-glow relative z-10 flex-1">
       <SmokeyCursor />
       <DashboardHeader connected={connected} email={email} />
 
