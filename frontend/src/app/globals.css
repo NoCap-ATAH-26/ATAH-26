@@ -182,17 +182,21 @@ body {
    discrete utilities rather than folded into .card-surface, since glow is
    meant to mark specific emphasis, not become the new default card look. */
 .glow-mint {
+  border-color: var(--color-accent-lime) !important;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-accent-lime) 45%, var(--color-border)),
-    0 0 32px -8px color-mix(in srgb, var(--color-accent-lime) 55%, transparent),
-    0 0 80px -32px color-mix(in srgb, var(--color-accent-lime) 70%, transparent);
+    0 0 0 1px var(--color-accent-lime),
+    0 0 24px 2px color-mix(in srgb, var(--color-accent-lime) 75%, transparent),
+    0 0 70px 6px color-mix(in srgb, var(--color-accent-lime) 55%, transparent),
+    0 0 140px 20px color-mix(in srgb, var(--color-accent-lime) 30%, transparent);
 }
 
 .glow-mauve {
+  border-color: var(--color-accent-mauve) !important;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-accent-mauve) 45%, var(--color-border)),
-    0 0 32px -8px color-mix(in srgb, var(--color-accent-mauve) 55%, transparent),
-    0 0 80px -32px color-mix(in srgb, var(--color-accent-mauve) 70%, transparent);
+    0 0 0 1px var(--color-accent-mauve),
+    0 0 24px 2px color-mix(in srgb, var(--color-accent-mauve) 75%, transparent),
+    0 0 70px 6px color-mix(in srgb, var(--color-accent-mauve) 55%, transparent),
+    0 0 140px 20px color-mix(in srgb, var(--color-accent-mauve) 30%, transparent);
 }
 
 /* Ambient background glow — two large, softly blurred color blooms sitting
@@ -211,13 +215,18 @@ body {
   pointer-events: none;
   background:
     radial-gradient(
-      480px 320px at 12% 8%,
-      color-mix(in srgb, var(--color-accent-lime) 16%, transparent),
-      transparent 70%
+      900px 640px at 10% 0%,
+      color-mix(in srgb, var(--color-accent-lime) 40%, transparent),
+      transparent 65%
     ),
     radial-gradient(
-      520px 360px at 88% 55%,
-      color-mix(in srgb, var(--color-accent-mauve) 14%, transparent),
+      900px 700px at 92% 60%,
+      color-mix(in srgb, var(--color-accent-mauve) 38%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      700px 500px at 30% 90%,
+      color-mix(in srgb, var(--color-accent-lime) 20%, transparent),
       transparent 70%
     );
 }
