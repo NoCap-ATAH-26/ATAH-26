@@ -26,7 +26,7 @@ export default function Home() {
 
   return (
     <main className="flex-1">
-      <SmokeyCursor color="#E7DADA" splatRadius={0.1} />
+      <SmokeyCursor color="#E7DADA" />
       <Hero />
       <SectionBlend />
       <TunnelExperience panels={TUNNEL_PANELS} />
