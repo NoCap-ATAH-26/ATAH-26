@@ -10,6 +10,7 @@ import { FeaturesGrid } from "@/components/FeaturesGrid";
 import { CTASection } from "@/components/CTASection";
 import { SectionBlend } from "@/components/SectionBlend";
 import { TunnelExperience, type TunnelPanelConfig } from "@/components/TunnelExperience";
+import SmokeyCursor from "@/components/ui/smokey-cursor";
 
 const TUNNEL_PANELS: TunnelPanelConfig[] = [
   { node: <ProblemSection />, anchor: { x: -0.6, y: 0.15, z: -10 }, treatment: "emerge", maxWidth: 1152 },
@@ -25,6 +26,7 @@ export default function Home() {
 
   return (
     <main className="flex-1">
+      <SmokeyCursor color="#E7DADA" />
       <Hero />
       <SectionBlend />
       <TunnelExperience panels={TUNNEL_PANELS} />

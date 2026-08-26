@@ -10,6 +10,7 @@ import { ScoreChart } from "@/components/ScoreChart";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { DocumentUpload } from "@/components/DocumentUpload";
+import SmokeyCursor from "@/components/ui/smokey-cursor";
 
 export function DashboardShell({ email }: { email: string | null }) {
   const { rows, connected } = useAuditLog();
@@ -26,6 +27,7 @@ export function DashboardShell({ email }: { email: string | null }) {
 
   return (
     <main className="ambient-glow flex-1">
+      <SmokeyCursor />
       <DashboardHeader connected={connected} email={email} />
 
       <section className="mx-auto max-w-6xl px-6 py-10">
