@@ -286,7 +286,7 @@ export function ChatRoom({ email }: { email: string | null }) {
                 backdrop-blur-[6px] (Tailwind's -sm is 8px) trims it further
                 without going all the way down to -xs (4px). */}
             <div className="flex w-full flex-1 flex-col overflow-hidden rounded-3xl border border-white/25 bg-white/[0.03] backdrop-blur-[6px]">
-              <div className="flex-1 space-y-4 overflow-y-auto p-6">
+              <div className="chat-scroll flex-1 space-y-4 overflow-y-auto p-6">
                 {messages.map((m) => (
                   <div
                     key={m.id}

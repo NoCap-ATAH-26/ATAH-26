@@ -62,7 +62,7 @@ export function ChatSessionsPanel({
         New chat
       </button>
 
-      <div className="flex-1 space-y-1 overflow-y-auto p-3">
+      <div className="chat-scroll flex-1 space-y-1 overflow-y-auto p-3">
         {sessions.length === 0 && (
           <p className="px-2 py-4 text-center text-xs text-zinc-500">No chats yet</p>
         )}

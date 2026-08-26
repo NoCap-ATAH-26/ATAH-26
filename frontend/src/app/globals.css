@@ -358,13 +358,38 @@ body {
   }
 }
 
-/* Native scrollbar hidden — ScrollProgressBar is the only visible scroll indicator */
+/* Native scrollbar hidden on the page itself — ScrollProgressBar is the only
+   visible scroll indicator there. Scoped to html specifically: an earlier,
+   unscoped ::-webkit-scrollbar rule here hid scrollbars on every scrollable
+   element site-wide, including ones that actually need a visible one (the
+   chat message list, the chat sessions panel), not just the page. */
 html {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-::-webkit-scrollbar {
+html::-webkit-scrollbar {
   display: none;
+}
+
+/* Thin, on-brand scrollbar for scrollable panels that DO want a visible
+   one — the chat message list and sessions panel, currently. */
+.chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+.chat-scroll::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+}
+.chat-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+}
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.32);
 }
 
 @layer base {
