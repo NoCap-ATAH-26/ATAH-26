@@ -29,6 +29,14 @@
      spots that want a second brand hue instead of pure Aquamarine. */
   --color-accent-mauve: #9c7a97;
 
+  /* Decorative-only accents — Blue and Gold, added for the dashboard's glow
+     system so it reads as genuinely multicolor rather than a two-hue repeat.
+     Unlike Aquamarine/Mauve these never carry interaction or brand voice;
+     they exist purely to give the pipeline stages and ambient glow distinct
+     colors, the way the reference dashboards use a spread of chip colors. */
+  --color-accent-blue: #4fa3ff;
+  --color-accent-gold: #e8b94b;
+
   /* Status — fixed, validated for CVD-safety, never themed, never reused as decoration */
   --color-status-good: #0ca30c;
   --color-status-warning: #fab219;
@@ -83,6 +91,8 @@
   --color-accent-lime: #3f56c9;
   --color-accent-lime-dim: #2c3fa4;
   --color-accent-mauve: #7b86c8;
+  --color-accent-blue: #2f6fd1;
+  --color-accent-gold: #8a6110;
 
   /* Status hues are held constant (same CVD-safe hue ordering as dark) and
      only darkened in lightness — the dark theme's values sit at 1.9:1–3.3:1
@@ -106,6 +116,8 @@
   --color-accent-lime: var(--color-accent-lime);
   --color-accent-lime-dim: var(--color-accent-lime-dim);
   --color-accent-mauve: var(--color-accent-mauve);
+  --color-accent-blue: var(--color-accent-blue);
+  --color-accent-gold: var(--color-accent-gold);
 
   --color-status-good: var(--color-status-good);
   --color-status-warning: var(--color-status-warning);
@@ -176,11 +188,13 @@ body {
 }
 
 /* Neon glow accents — colored halos on true black, echoing an ops-console
-   HUD rather than a soft consumer glow. Two hues only, both already in the
-   palette: mint for system/data surfaces, mauve for the "human" surfaces
-   (see DESIGN.md's assignment of mauve as the one warm note). Kept as
-   discrete utilities rather than folded into .card-surface, since glow is
-   meant to mark specific emphasis, not become the new default card look. */
+   HUD rather than a soft consumer glow. Four hues, each with one job: mint
+   (system/data surfaces), mauve (the "human"/narrative surface), blue and
+   gold (decorative-only, spread across the pipeline stages and ambient wash
+   so the dashboard reads as genuinely multicolor rather than a two-hue
+   repeat). Kept as discrete utilities rather than folded into .card-surface,
+   since glow is meant to mark specific emphasis, not become the default
+   card look. */
 .glow-mint {
   border-color: var(--color-accent-lime) !important;
   box-shadow:
@@ -197,6 +211,24 @@ body {
     0 0 24px 2px color-mix(in srgb, var(--color-accent-mauve) 75%, transparent),
     0 0 70px 6px color-mix(in srgb, var(--color-accent-mauve) 55%, transparent),
     0 0 140px 20px color-mix(in srgb, var(--color-accent-mauve) 30%, transparent);
+}
+
+.glow-blue {
+  border-color: var(--color-accent-blue) !important;
+  box-shadow:
+    0 0 0 1px var(--color-accent-blue),
+    0 0 24px 2px color-mix(in srgb, var(--color-accent-blue) 75%, transparent),
+    0 0 70px 6px color-mix(in srgb, var(--color-accent-blue) 55%, transparent),
+    0 0 140px 20px color-mix(in srgb, var(--color-accent-blue) 30%, transparent);
+}
+
+.glow-gold {
+  border-color: var(--color-accent-gold) !important;
+  box-shadow:
+    0 0 0 1px var(--color-accent-gold),
+    0 0 24px 2px color-mix(in srgb, var(--color-accent-gold) 75%, transparent),
+    0 0 70px 6px color-mix(in srgb, var(--color-accent-gold) 55%, transparent),
+    0 0 140px 20px color-mix(in srgb, var(--color-accent-gold) 30%, transparent);
 }
 
 /* Ambient background glow — two large, softly blurred color blooms sitting
@@ -225,8 +257,13 @@ body {
       transparent 65%
     ),
     radial-gradient(
-      700px 500px at 30% 90%,
-      color-mix(in srgb, var(--color-accent-lime) 20%, transparent),
+      700px 500px at 30% 95%,
+      color-mix(in srgb, var(--color-accent-blue) 32%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      620px 460px at 60% 25%,
+      color-mix(in srgb, var(--color-accent-gold) 24%, transparent),
       transparent 70%
     );
 }

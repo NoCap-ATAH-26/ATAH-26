@@ -47,7 +47,7 @@ export function DashboardHeader({
         {email && <span className="hidden normal-case tracking-normal text-ink-muted sm:inline">{email}</span>}
         <Link
           href="/dashboard/chat"
-          className="flex items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3 py-1.5 text-ink transition hover:glow-mint hover:border-transparent hover:bg-surface-2"
+          className="flex items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3 py-1.5 text-ink transition hover:glow-blue hover:border-transparent hover:bg-surface-2"
         >
           <MessageSquare size={13} />
           Chat

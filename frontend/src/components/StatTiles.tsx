@@ -32,7 +32,7 @@ export function StatTiles({ rows }: { rows: AuditLogRow[] }) {
         : 0;
 
     return [
-      { label: "Documents Processed", value: latest.length, icon: FileCheck2, color: "var(--color-ink)" },
+      { label: "Documents Processed", value: latest.length, icon: FileCheck2, color: "var(--color-accent-blue)" },
       { label: "Approved / Repaired", value: approved + repaired, icon: Wrench, color: "var(--color-status-good)" },
       { label: "Quarantined", value: quarantined, icon: ShieldAlert, color: "var(--color-status-critical)" },
       { label: "Avg Risk Score", value: avgRisk, icon: Gauge, color: "var(--color-status-warning)" },

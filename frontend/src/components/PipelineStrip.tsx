@@ -26,11 +26,42 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
     };
   }, [rows]);
 
+  // Each stage gets its own hue rather than repeating mint four times — the
+  // pipeline reads left-to-right as a spectrum instead of one accent color
+  // with four labels stapled on.
   const stages = [
-    { key: "ingested", label: "Ingested", icon: FileInput, count: counts.ingested },
-    { key: "inspector", label: "Inspector", icon: ScanSearch, count: counts.inspector },
-    { key: "repair", label: "Repair", icon: Wrench, count: counts.repair },
-    { key: "verifier", label: "Verifier", icon: BadgeCheck, count: counts.verifier },
+    {
+      key: "ingested",
+      label: "Ingested",
+      icon: FileInput,
+      count: counts.ingested,
+      colorVar: "var(--color-accent-lime)",
+      glowClass: "glow-mint",
+    },
+    {
+      key: "inspector",
+      label: "Inspector",
+      icon: ScanSearch,
+      count: counts.inspector,
+      colorVar: "var(--color-accent-blue)",
+      glowClass: "glow-blue",
+    },
+    {
+      key: "repair",
+      label: "Repair",
+      icon: Wrench,
+      count: counts.repair,
+      colorVar: "var(--color-accent-gold)",
+      glowClass: "glow-gold",
+    },
+    {
+      key: "verifier",
+      label: "Verifier",
+      icon: BadgeCheck,
+      count: counts.verifier,
+      colorVar: "var(--color-accent-mauve)",
+      glowClass: "glow-mauve",
+    },
   ];
 
   useGSAP(
@@ -76,10 +107,10 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
           <div key={s.key} className="flex items-center gap-2">
             <div
               className={`pipeline-node flex w-32 flex-col items-center gap-2 rounded-xl border px-4 py-5 ${
-                s.count > 0 ? "glow-mint border-transparent bg-surface-2" : "border-border bg-surface-2"
+                s.count > 0 ? `${s.glowClass} border-transparent bg-surface-2` : "border-border bg-surface-2"
               }`}
             >
-              <s.icon size={20} className="text-accent-lime" />
+              <s.icon size={20} style={{ color: s.colorVar }} />
               <span className="font-mono text-2xl tabular-nums">{s.count}</span>
               <span className="text-[11px] text-ink-muted">{s.label}</span>
             </div>
@@ -88,11 +119,9 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
                 <div
                   className="flow-pulse h-[2px] w-10"
                   style={{
-                    backgroundImage:
-                      "linear-gradient(90deg, var(--color-border) 0%, var(--color-accent-lime) 50%, var(--color-border) 100%)",
+                    backgroundImage: `linear-gradient(90deg, var(--color-border) 0%, ${s.colorVar} 50%, var(--color-border) 100%)`,
                     backgroundSize: "200% 100%",
-                    filter:
-                      "drop-shadow(0 0 10px color-mix(in srgb, var(--color-accent-lime) 90%, transparent))",
+                    filter: `drop-shadow(0 0 10px color-mix(in srgb, ${s.colorVar} 90%, transparent))`,
                   }}
                 />
                 <ArrowRight size={14} className="text-ink-faint" />
