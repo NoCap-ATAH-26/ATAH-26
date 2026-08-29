@@ -27,6 +27,7 @@ export const SOURCES: SourceMeta[] = [
     label: "Google Workspace",
     icon: HardDrive,
     access: "Read-only: Drive files (docs, sheets, PDFs) and Gmail messages/attachments.",
+    needs: "Google verification for restricted scopes, which requires a verified domain (a Google-owned *.vercel.app URL doesn't qualify).",
   },
   {
     key: "slack",
