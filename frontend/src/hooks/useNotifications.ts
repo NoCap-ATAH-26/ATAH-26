@@ -6,18 +6,15 @@ import { createClient } from "@/lib/supabase/client";
 export type Severity = "critical" | "important" | "info";
 
 export type Notification = {
-  file_name: string;
-  stage: string;
-  status: string;
-  severity: Severity;
+  id: string;
   title: string;
-  what_changed: string;
-  all_issues: string[];
-  impact: string;
-  source: string;
-  recommended_action: string;
-  reason: string;
-  timestamp: string;
+  severity: Severity;
+  document_name: string;
+  message: string;
+  action_taken: string;
+  source_files: string[];
+  created_at: string;
+  read: boolean;
 };
 
 /**
@@ -37,7 +34,7 @@ export function useNotifications() {
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
-        .order("timestamp", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(50);
 
       if (!active) return;

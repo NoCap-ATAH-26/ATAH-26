@@ -47,12 +47,12 @@ function NotificationRow({ notification }: { notification: Notification }) {
               {config.label}
             </span>
             <span className="shrink-0 font-mono text-[10px] text-ink-faint">
-              {timeAgo(notification.timestamp)}
+              {timeAgo(notification.created_at)}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-sm text-ink">{notification.file_name}</p>
+          <p className="mt-0.5 truncate text-sm text-ink">{notification.document_name}</p>
           {!expanded && (
-            <p className="mt-0.5 truncate text-xs text-ink-muted">{notification.what_changed}</p>
+            <p className="mt-0.5 truncate text-xs text-ink-muted">{notification.message}</p>
           )}
         </div>
       </button>
@@ -60,16 +60,14 @@ function NotificationRow({ notification }: { notification: Notification }) {
       {expanded && (
         <div className="space-y-1.5 px-4 pb-3 pl-[30px] text-xs">
           <p className="text-ink-muted">
-            <span className="text-ink">{notification.what_changed}</span>
+            <span className="text-ink">{notification.message}</span>
           </p>
           <p className="text-ink-muted">
-            <span className="text-ink">Impact:</span> {notification.impact}
+            <span className="text-ink">Source:</span>{" "}
+            {notification.source_files.length ? notification.source_files.join(", ") : "No source cited."}
           </p>
           <p className="text-ink-muted">
-            <span className="text-ink">Source:</span> {notification.source}
-          </p>
-          <p className="text-ink-muted">
-            <span className="text-ink">Recommended action:</span> {notification.recommended_action}
+            <span className="text-ink">Action taken:</span> {notification.action_taken}
           </p>
         </div>
       )}
@@ -131,9 +129,7 @@ export function NotificationBell() {
             <p className="px-4 py-6 text-center text-sm text-ink-muted">No notifications yet.</p>
           )}
           {!loading &&
-            notifications.map((n, i) => (
-              <NotificationRow key={`${n.file_name}-${n.timestamp}-${i}`} notification={n} />
-            ))}
+            notifications.map((n) => <NotificationRow key={n.id} notification={n} />)}
         </div>
       )}
     </div>

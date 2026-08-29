@@ -109,10 +109,25 @@ def build_notification(result: dict, stage: str) -> dict:
         "what_changed": what_changed,
         "all_issues": issues,
         "impact": _impact_from_risk_score(result.get("risk_score")),
-        "source": ", ".join(source_files) if source_files else "No source cited.",
+        "source_files": source_files,
         "recommended_action": _recommended_action(severity),
         "reason": result.get("reason", ""),
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+
+
+def _to_db_row(n: dict) -> dict:
+    """Maps the richer internal notification dict onto the notifications
+    table's actual columns (title, severity, document_name, message,
+    action_taken, source_files) -- id/created_at/read are left to the
+    table's own defaults."""
+    return {
+        "title": n["title"],
+        "severity": n["severity"],
+        "document_name": n["file_name"],
+        "message": n["what_changed"],
+        "action_taken": n["recommended_action"],
+        "source_files": n["source_files"],
     }
 
 
@@ -123,7 +138,7 @@ def _write_in_app_notification(notification: dict) -> None:
         client = _get_client()
         if client is None:
             return
-        client.table(NOTIFICATIONS_TABLE).insert(notification).execute()
+        client.table(NOTIFICATIONS_TABLE).insert(_to_db_row(notification)).execute()
         print(f"[notifier] In-app notification written: {notification['file_name']}")
     except Exception as e:
         # Notifications should never break the pipeline itself.
@@ -172,13 +187,17 @@ def _send_slack(text: str) -> None:
         print(f"[notifier] Slack failed to send: {e}")
 
 
+def _source_line(n: dict) -> str:
+    return ", ".join(n["source_files"]) if n["source_files"] else "No source cited."
+
+
 def _email_body(n: dict) -> str:
     issues_html = "".join(f"<li>{i}</li>" for i in n["all_issues"]) or "<li>None listed.</li>"
     return f"""
         <h2>{SEVERITY_CONFIG[n['severity']]['emoji']} {n['title']}</h2>
         <p><strong>What changed:</strong> {n['what_changed']}</p>
         <p><strong>Impact:</strong> {n['impact']}</p>
-        <p><strong>Source:</strong> {n['source']}</p>
+        <p><strong>Source:</strong> {_source_line(n)}</p>
         <p><strong>Recommended action:</strong> {n['recommended_action']}</p>
         <p><strong>All issues:</strong></p>
         <ul>{issues_html}</ul>
@@ -191,7 +210,7 @@ def _slack_message(n: dict) -> str:
         f"{SEVERITY_CONFIG[n['severity']]['slack_emoji']} *{n['title']}*\n"
         f"*What changed:* {n['what_changed']}\n"
         f"*Impact:* {n['impact']}\n"
-        f"*Source:* {n['source']}\n"
+        f"*Source:* {_source_line(n)}\n"
         f"*Recommended action:* {n['recommended_action']}"
     )
 
