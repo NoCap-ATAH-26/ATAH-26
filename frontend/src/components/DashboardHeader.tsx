@@ -6,6 +6,7 @@ import Link from "next/link";
 import { LogOut, MessageSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export function DashboardHeader({
   connected,
@@ -52,6 +53,7 @@ export function DashboardHeader({
           <MessageSquare size={13} />
           Chat
         </Link>
+        <NotificationBell />
         <button
           type="button"
           onClick={handleSignOut}

@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
+import { Bell, CircleAlert, TriangleAlert, Info } from "lucide-react";
 import { useNotifications, type Notification, type Severity } from "@/hooks/useNotifications";
 
-const SEVERITY_CONFIG: Record<Severity, { emoji: string; dot: string; label: string }> = {
-  critical: { emoji: "🔴", dot: "bg-red-400", label: "Critical" },
-  important: { emoji: "🟠", dot: "bg-amber-400", label: "Important" },
-  info: { emoji: "🔵", dot: "bg-blue-400", label: "Information" },
+const SEVERITY_CONFIG: Record<
+  Severity,
+  { icon: typeof Bell; colorVar: string; label: string }
+> = {
+  critical: { icon: CircleAlert, colorVar: "var(--color-status-critical)", label: "Critical" },
+  important: { icon: TriangleAlert, colorVar: "var(--color-status-warning)", label: "Important" },
+  info: { icon: Info, colorVar: "var(--color-status-good)", label: "Information" },
 };
 
 function timeAgo(isoTimestamp: string): string {
@@ -25,46 +29,47 @@ function timeAgo(isoTimestamp: string): string {
 function NotificationRow({ notification }: { notification: Notification }) {
   const [expanded, setExpanded] = useState(false);
   const config = SEVERITY_CONFIG[notification.severity] ?? SEVERITY_CONFIG.info;
+  const Icon = config.icon;
 
   return (
-    <div className="border-b border-ink-muted/10 last:border-b-0">
+    <div className="border-b border-border last:border-b-0">
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="flex w-full items-start gap-2.5 px-4 py-3 text-left hover:bg-white/[0.02]"
+        className="flex w-full items-start gap-2.5 px-4 py-3 text-left hover:bg-surface-2"
       >
-        <span className="mt-0.5 text-sm leading-none">{config.emoji}</span>
+        <Icon size={14} className="mt-0.5 shrink-0" style={{ color: config.colorVar }} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+            <span
+              className="font-mono text-[10px] uppercase tracking-widest"
+              style={{ color: config.colorVar }}
+            >
               {config.label}
             </span>
-            <span className="shrink-0 text-xs text-ink-muted">
+            <span className="shrink-0 font-mono text-[10px] text-ink-faint">
               {timeAgo(notification.timestamp)}
             </span>
           </div>
           <p className="mt-0.5 truncate text-sm text-ink">{notification.file_name}</p>
           {!expanded && (
-            <p className="mt-0.5 truncate text-xs text-ink-muted">
-              {notification.what_changed}
-            </p>
+            <p className="mt-0.5 truncate text-xs text-ink-muted">{notification.what_changed}</p>
           )}
         </div>
       </button>
 
       {expanded && (
-        <div className="space-y-1.5 px-4 pb-3 pl-[34px] text-xs">
+        <div className="space-y-1.5 px-4 pb-3 pl-[30px] text-xs">
           <p className="text-ink-muted">
             <span className="text-ink">{notification.what_changed}</span>
           </p>
           <p className="text-ink-muted">
-            <span className="font-medium text-ink">Impact:</span> {notification.impact}
+            <span className="text-ink">Impact:</span> {notification.impact}
           </p>
           <p className="text-ink-muted">
-            <span className="font-medium text-ink">Source:</span> {notification.source}
+            <span className="text-ink">Source:</span> {notification.source}
           </p>
           <p className="text-ink-muted">
-            <span className="font-medium text-ink">Recommended action:</span>{" "}
-            {notification.recommended_action}
+            <span className="text-ink">Recommended action:</span> {notification.recommended_action}
           </p>
         </div>
       )}
@@ -95,30 +100,35 @@ export function NotificationBell() {
   return (
     <div ref={containerRef} className="relative">
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-ink-muted/20 text-ink hover:border-ink-muted/40"
+        className="relative flex items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3 py-1.5 text-ink transition hover:bg-surface-2"
         aria-label="Notifications"
       >
-        🔔
+        <Bell size={13} />
         {criticalCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
+          <span
+            className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full font-mono text-[9px] font-medium text-white"
+            style={{ backgroundColor: "var(--color-status-critical)" }}
+          >
             {criticalCount > 9 ? "9+" : criticalCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-50 max-h-[28rem] w-80 overflow-y-auto rounded-xl border border-ink-muted/20 bg-bg shadow-xl">
-          <div className="border-b border-ink-muted/10 px-4 py-3">
-            <h3 className="text-sm font-semibold text-ink">🔔 Notifications</h3>
+        <div className="absolute right-0 top-11 z-50 max-h-[28rem] w-80 overflow-y-auto rounded-xl border border-border bg-surface shadow-xl backdrop-blur-xl">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+            <Bell size={13} className="text-ink-muted" />
+            <h3 className="font-mono text-xs uppercase tracking-widest text-ink-muted">
+              Notifications
+            </h3>
           </div>
           {loading && (
             <p className="px-4 py-6 text-center text-sm text-ink-muted">Loading…</p>
           )}
           {!loading && notifications.length === 0 && (
-            <p className="px-4 py-6 text-center text-sm text-ink-muted">
-              No notifications yet.
-            </p>
+            <p className="px-4 py-6 text-center text-sm text-ink-muted">No notifications yet.</p>
           )}
           {!loading &&
             notifications.map((n, i) => (
