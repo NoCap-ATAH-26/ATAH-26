@@ -1,35 +1,31 @@
 """
 NoCap — Notifier
 
-Turns a pipeline decision into something a human can actually act on,
-across two layers:
+Turns a pipeline decision into something a human can actually act on.
 
-1. IN-APP — every result (critical, important, or info) gets written to a
-   Firestore "notifications" collection, which the dashboard's bell icon
-   reads from. Each notification carries structured evidence — what
-   changed, impact, source, recommended action — not just a status string.
+IN-APP NOTIFICATIONS (dual-write):
+  Always saved locally to data/notifications.json (guaranteed, no
+  credentials needed — works offline, for local dev). ALSO synced to
+  Supabase's "notifications" table if SUPABASE_URL/SUPABASE_KEY are set,
+  so the same notifications show up live on your deployed Vercel site,
+  not just on your laptop. Either channel failing never blocks the other
+  or crashes the pipeline.
 
-2. EMAIL / SLACK — critical results (quarantined) fire immediately via
-   Resend + Slack, since that's the case someone needs to see right now,
-   not discover later by opening the dashboard.
+  Setup for the Supabase side (.env):
+    SUPABASE_URL=https://bsjjtbnovmbwpypfpilg.supabase.co
+    SUPABASE_KEY=<publishable key, same one audit_log.py uses>
+  Table: see the "notifications" table migration (run once in Supabase's
+  SQL Editor) — id, title, severity, document_name, message, action_taken,
+  source_files, created_at, read.
 
-Severity mapping (matches the dashboard's existing status colors):
+Severity mapping:
     quarantined  -> critical  (🔴) — needs a human, right now
     needs_repair -> important (🟠) — repaired automatically, worth knowing
     approved     -> info      (🔵) — routine, no action needed
 
-Every channel is OPTIONAL and independent — missing config just no-ops
-with a printed note, nothing breaks.
-
-Setup:
-1. pip install resend
-2. .env:
-     RESEND_API_KEY=re_...
-     NOTIFY_EMAIL_FROM=alerts@yourdomain.com
-     NOTIFY_EMAIL_TO=you@yourcompany.com
-     SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
-3. In-app notifications reuse your existing Firestore setup — no extra
-   config needed if firestore_logger.py already works.
+Email (Resend) and Slack are OPTIONAL and independent of in-app logging —
+missing config just no-ops with a printed note, nothing breaks. Only
+critical (quarantined) results attempt to fire them.
 
 Usage (called from inspector.py / repair.py / verifier.py):
     from notifier import notify
@@ -40,7 +36,11 @@ Usage (called from inspector.py / repair.py / verifier.py):
 from __future__ import annotations
 
 import datetime
+import json
 import os
+import sys
+import uuid
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -54,7 +54,47 @@ SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 _EMAIL_CONFIGURED = bool(RESEND_API_KEY and NOTIFY_EMAIL_FROM and NOTIFY_EMAIL_TO)
 _SLACK_CONFIGURED = bool(SLACK_WEBHOOK_URL)
 
-NOTIFICATIONS_COLLECTION = "notifications"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+_supabase_client = None
+_supabase_warned = False
+
+
+def _get_supabase_client():
+    """Lazily create and cache the Supabase client, mirroring audit_log.py's
+    pattern exactly. Returns None (fails soft) if not configured/reachable,
+    printing one warning rather than crashing the pipeline."""
+    global _supabase_client, _supabase_warned
+    if _supabase_client is not None:
+        return _supabase_client
+
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        if not _supabase_warned:
+            print(
+                "[notifier] SUPABASE_URL/SUPABASE_KEY not set — notifications "
+                "only saved locally (data/notifications.json), not live on "
+                "the deployed site. See notifier.py setup docs.",
+                file=sys.stderr,
+            )
+            _supabase_warned = True
+        return None
+
+    try:
+        from supabase import create_client
+
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        return _supabase_client
+    except Exception as exc:
+        if not _supabase_warned:
+            print(f"[notifier] Supabase unavailable ({exc}), notifications only saved locally.", file=sys.stderr)
+            _supabase_warned = True
+        return None
+
+# backend/notifier.py -> project root -> data/notifications.json
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+NOTIFICATIONS_FILE = DATA_DIR / "notifications.json"
 
 SEVERITY_CONFIG = {
     "critical": {"emoji": "🔴", "label": "Critical", "slack_emoji": ":red_circle:"},
@@ -69,6 +109,13 @@ STATUS_TO_SEVERITY = {
     "approved": "info",
 }
 
+ACTION_TAKEN_BY_STATUS = {
+    "quarantined": "Quarantined — document not published, flagged for human review.",
+    "needs_repair": "Flagged for repair — an automated fix will be attempted.",
+    "repaired": "Repaired automatically using approved policy sources.",
+    "approved": "Approved and published automatically.",
+}
+
 
 def _impact_from_risk_score(risk_score) -> str:
     if risk_score is None:
@@ -80,51 +127,78 @@ def _impact_from_risk_score(risk_score) -> str:
     return "Low"
 
 
-def _recommended_action(severity: str) -> str:
-    return {
-        "critical": "Review immediately — this document is quarantined and not published.",
-        "important": "Review the automated repair before relying on it.",
-        "info": "No action needed — processed and published automatically.",
-    }.get(severity, "Review this document.")
-
-
 def build_notification(result: dict, stage: str) -> dict:
-    """Turns a raw agent result into structured, evidence-based notification
-    fields — not just a status string."""
+    """Turns a raw agent result into a structured notification record."""
     status = result.get("status") or result.get("current_status", "unknown")
     severity = STATUS_TO_SEVERITY.get(status, "info")
 
     file_name = result.get("file_name", "unknown file")
     issues = result.get("issues") or result.get("remaining_issues") or []
-    what_changed = issues[0] if issues else result.get("reason", "No details available.")
+    message = issues[0] if issues else result.get("reason", "No details available.")
     source_files = result.get("source_files") or []
 
     return {
-        "file_name": file_name,
-        "stage": stage,
-        "status": status,
-        "severity": severity,
+        "id": str(uuid.uuid4()),
         "title": f"{SEVERITY_CONFIG[severity]['label']}: {file_name}",
-        "what_changed": what_changed,
-        "all_issues": issues,
-        "impact": _impact_from_risk_score(result.get("risk_score")),
-        "source": ", ".join(source_files) if source_files else "No source cited.",
-        "recommended_action": _recommended_action(severity),
-        "reason": result.get("reason", ""),
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "severity": severity,
+        "document_name": file_name,
+        "message": message,
+        "action_taken": ACTION_TAKEN_BY_STATUS.get(status, "Processed."),
+        "source_files": source_files,
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "read": False,
+        # Kept for internal use (email/Slack bodies, debugging) — not part
+        # of the fixed schema requested, but harmless extra fields.
+        "_stage": stage,
+        "_status": status,
+        "_impact": _impact_from_risk_score(result.get("risk_score")),
+        "_all_issues": issues,
+        "_reason": result.get("reason", ""),
     }
 
 
-def _write_in_app_notification(notification: dict) -> None:
+def _load_notifications() -> list[dict]:
+    if not NOTIFICATIONS_FILE.exists():
+        return []
     try:
-        import firestore_logger
+        return json.loads(NOTIFICATIONS_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
 
-        client = firestore_logger.get_client()
-        client.collection(NOTIFICATIONS_COLLECTION).add(notification)
-        print(f"[notifier] In-app notification written: {notification['file_name']}")
-    except Exception as e:
-        # Notifications should never break the pipeline itself.
-        print(f"[notifier] Could not write in-app notification: {e}")
+
+def _save_notification(notification: dict) -> None:
+    """Appends one notification, newest first, to data/notifications.json
+    (always — this is the guaranteed local fallback), AND writes the same
+    notification to Supabase if configured, so it shows up live on the
+    deployed site too. Either channel failing never blocks the other."""
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    notifications = _load_notifications()
+    notifications.insert(0, notification)  # newest first
+
+    NOTIFICATIONS_FILE.write_text(json.dumps(notifications, indent=2), encoding="utf-8")
+    print("[notifier] In-app notification saved")
+
+    client = _get_supabase_client()
+    if client is not None:
+        # Supabase table has fixed columns matching the local schema minus
+        # the internal "_"-prefixed debug fields.
+        row = {
+            "id": notification["id"],
+            "title": notification["title"],
+            "severity": notification["severity"],
+            "document_name": notification["document_name"],
+            "message": notification["message"],
+            "action_taken": notification["action_taken"],
+            "source_files": notification["source_files"],
+            "created_at": notification["created_at"],
+            "read": notification["read"],
+        }
+        try:
+            client.table("notifications").insert(row).execute()
+            print("[notifier] Notification synced to Supabase (live on Vercel).")
+        except Exception as exc:
+            print(f"[notifier] Failed to sync notification to Supabase: {exc}", file=sys.stderr)
 
 
 def _send_email(subject: str, html_body: str) -> None:
@@ -170,47 +244,44 @@ def _send_slack(text: str) -> None:
 
 
 def _email_body(n: dict) -> str:
-    issues_html = "".join(f"<li>{i}</li>" for i in n["all_issues"]) or "<li>None listed.</li>"
+    issues_html = "".join(f"<li>{i}</li>" for i in n["_all_issues"]) or "<li>None listed.</li>"
+    sources = ", ".join(n["source_files"]) or "No source cited."
     return f"""
         <h2>{SEVERITY_CONFIG[n['severity']]['emoji']} {n['title']}</h2>
-        <p><strong>What changed:</strong> {n['what_changed']}</p>
-        <p><strong>Impact:</strong> {n['impact']}</p>
-        <p><strong>Source:</strong> {n['source']}</p>
-        <p><strong>Recommended action:</strong> {n['recommended_action']}</p>
+        <p><strong>Message:</strong> {n['message']}</p>
+        <p><strong>Impact:</strong> {n['_impact']}</p>
+        <p><strong>Source:</strong> {sources}</p>
+        <p><strong>Action taken:</strong> {n['action_taken']}</p>
         <p><strong>All issues:</strong></p>
         <ul>{issues_html}</ul>
-        <p style="color:#888;font-size:12px;">Stage: {n['stage']} · {n['timestamp']}</p>
+        <p style="color:#888;font-size:12px;">Stage: {n['_stage']} · {n['created_at']}</p>
     """
 
 
 def _slack_message(n: dict) -> str:
+    sources = ", ".join(n["source_files"]) or "No source cited."
     return (
         f"{SEVERITY_CONFIG[n['severity']]['slack_emoji']} *{n['title']}*\n"
-        f"*What changed:* {n['what_changed']}\n"
-        f"*Impact:* {n['impact']}\n"
-        f"*Source:* {n['source']}\n"
-        f"*Recommended action:* {n['recommended_action']}"
+        f"*Message:* {n['message']}\n"
+        f"*Impact:* {n['_impact']}\n"
+        f"*Source:* {sources}\n"
+        f"*Action taken:* {n['action_taken']}"
     )
 
 
 def notify(result: dict, stage: str) -> dict:
     """Single entry point — call this from any agent after producing a
-    result. Automatically determines severity, writes an in-app
-    notification for every severity level, and fires email + Slack
-    immediately for critical (quarantined) results only, to avoid
-    alert fatigue on routine approvals.
-
-    Important/info results are logged in-app but NOT emailed immediately
-    by design — batch these into a daily/weekly digest in production
-    (not built yet; see README roadmap notes).
+    result. Always saves an in-app notification locally. Only fires
+    email + Slack for critical (quarantined) results, and only if those
+    channels are configured — otherwise they no-op silently.
     """
     notification = build_notification(result, stage)
 
-    _write_in_app_notification(notification)
+    _save_notification(notification)
 
     if notification["severity"] == "critical":
         _send_email(
-            subject=f"{SEVERITY_CONFIG['critical']['emoji']} NoCap: {notification['file_name']}",
+            subject=f"{SEVERITY_CONFIG['critical']['emoji']} NoCap: {notification['document_name']}",
             html_body=_email_body(notification),
         )
         _send_slack(_slack_message(notification))

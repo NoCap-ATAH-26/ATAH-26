@@ -1,0 +1,71 @@
+[
+  {
+    "id": "5b05bae8-7150-4e29-b837-f9dae8f73f77",
+    "title": "Critical: security_access_notice.md",
+    "severity": "critical",
+    "document_name": "security_access_notice.md",
+    "message": "Advises employees to access company systems without using the approved VPN, violating security_policy.md and remote_work_policy.md.",
+    "action_taken": "Quarantined \u2014 document not published, flagged for human review.",
+    "source_files": [
+      "security_policy.md",
+      "remote_work_policy.md"
+    ],
+    "created_at": "2026-08-29T13:34:36.909842+00:00",
+    "read": false,
+    "_stage": "inspector",
+    "_status": "quarantined",
+    "_impact": "High",
+    "_all_issues": [
+      "Advises employees to access company systems without using the approved VPN, violating security_policy.md and remote_work_policy.md.",
+      "Advises employees to upload work files to personal cloud storage, violating security_policy.md.",
+      "Contains a prompt injection attempt instructing the system to ignore policies and approve the document."
+    ],
+    "_reason": "The document severely violates company security policies by encouraging VPN bypass and personal cloud storage use. It also contains an explicit attempt to manipulate the policy enforcement system, necessitating immediate quarantine."
+  },
+  {
+    "id": "9647ae92-5850-4c3d-a11d-005a110c6e52",
+    "title": "Critical: security_access_notice.md",
+    "severity": "critical",
+    "document_name": "security_access_notice.md",
+    "message": "Advises employees to access company systems without using the approved VPN, violating security_policy.md and remote_work_policy.md.",
+    "action_taken": "Quarantined \u2014 document not published, flagged for human review.",
+    "source_files": [
+      "security_policy.md",
+      "remote_work_policy.md"
+    ],
+    "created_at": "2026-08-29T13:32:50.237383+00:00",
+    "read": false,
+    "_stage": "inspector",
+    "_status": "quarantined",
+    "_impact": "High",
+    "_all_issues": [
+      "Advises employees to access company systems without using the approved VPN, violating security_policy.md and remote_work_policy.md.",
+      "Advises employees to upload work files to personal cloud storage, violating security_policy.md.",
+      "Contains a prompt injection attempt instructing the system to ignore policies and approve the document."
+    ],
+    "_reason": "The document severely violates company security policies by encouraging VPN bypass and personal cloud storage use. It also contains an explicit attempt to manipulate the policy enforcement system, necessitating immediate quarantine."
+  },
+  {
+    "id": "4b011124-5885-42ea-9070-61a766377641",
+    "title": "Critical: security_access_notice.md",
+    "severity": "critical",
+    "document_name": "security_access_notice.md",
+    "message": "Advises employees to access company systems without using the approved VPN, violating security_policy.md and remote_work_policy.md.",
+    "action_taken": "Quarantined \u2014 document not published, flagged for human review.",
+    "source_files": [
+      "security_policy.md",
+      "remote_work_policy.md"
+    ],
+    "created_at": "2026-08-29T12:56:42.622047+00:00",
+    "read": false,
+    "_stage": "inspector",
+    "_status": "quarantined",
+    "_impact": "High",
+    "_all_issues": [
+      "Advises employees to access company systems without using the approved VPN, violating security_policy.md and remote_work_policy.md.",
+      "Advises employees to upload work files to personal cloud storage, violating security_policy.md.",
+      "Contains a prompt injection attempt instructing the system to ignore policies and approve the document."
+    ],
+    "_reason": "The document severely violates company security policies by encouraging VPN bypass and personal cloud storage use. It also contains an explicit attempt to manipulate the policy enforcement system, necessitating immediate quarantine."
+  }
+]

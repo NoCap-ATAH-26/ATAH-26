@@ -190,20 +190,28 @@ def run(
         print(json.dumps(result, indent=2))
 
         if log_to_firestore:
-            import firestore_logger
+            try:
+                import firestore_logger
 
-            original_text = (INCOMING_DOCUMENTS_DIR / file_name).read_text(encoding="utf-8")
-            firestore_logger.log_stage(
-                file_name=file_name,
-                stage="inspector",
-                status=result["status"],
-                reason=result["reason"],
-                risk_score=result.get("risk_score"),
-                issues=result.get("issues"),
-                source_files=result.get("source_files"),
-                original_text=original_text,
-            )
-            print(f"Logged to Firestore: {file_name}", file=sys.stderr)
+                original_text = (INCOMING_DOCUMENTS_DIR / file_name).read_text(encoding="utf-8")
+                firestore_logger.log_stage(
+                    file_name=file_name,
+                    stage="inspector",
+                    status=result["status"],
+                    reason=result["reason"],
+                    risk_score=result.get("risk_score"),
+                    issues=result.get("issues"),
+                    source_files=result.get("source_files"),
+                    original_text=original_text,
+                )
+                print(f"Logged to Firestore: {file_name}", file=sys.stderr)
+            except ImportError:
+                print(
+                    "[inspector] --log requested but firestore_logger.py isn't "
+                    "in backend/ yet — skipping Firestore logging. In-app "
+                    "notifications (data/notifications.json) still work fine.",
+                    file=sys.stderr,
+                )
 
         import notifier
 
