@@ -10,6 +10,7 @@ nocap-document-ingested for each one exactly as a dashboard upload would --
 from that point on it's indistinguishable from a manual upload.
 """
 
+import json
 import os
 import sys
 from http.server import BaseHTTPRequestHandler
@@ -19,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "_lib"))
 
 import gmail_client  # noqa: E402
 import pubsub_bus  # noqa: E402
+import pubsub_dedup  # noqa: E402
 import pubsub_verify  # noqa: E402
 import storage  # noqa: E402
 from supabase import create_client  # noqa: E402
@@ -42,7 +44,15 @@ class handler(BaseHTTPRequestHandler):
         # gmail_watch_state's stored historyId is the resume point, not whatever
         # this one notification happens to carry (notifications can coalesce).
         length = int(self.headers.get("Content-Length", 0))
-        self.rfile.read(length)
+        body = json.loads(self.rfile.read(length) or b"{}")
+        message_id = body.get("message", {}).get("messageId")
+
+        if not pubsub_dedup.claim(message_id):
+            print("[gmail-notify] duplicate delivery, skipping", file=sys.stderr)
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"ok": true, "duplicate": true}')
+            return
 
         try:
             db = _admin_db()

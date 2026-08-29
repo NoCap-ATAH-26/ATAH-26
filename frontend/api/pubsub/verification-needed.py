@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "_lib"))
 
 import inspector  # noqa: E402
+import pubsub_dedup  # noqa: E402
 import pubsub_verify  # noqa: E402
 import verifier  # noqa: E402
 
@@ -34,6 +35,13 @@ class handler(BaseHTTPRequestHandler):
         data = base64.b64decode(message.get("data", "")).decode("utf-8")
         payload = json.loads(data)
         file_name = payload["file_name"]
+
+        if not pubsub_dedup.claim(message.get("messageId")):
+            print(f"[verification-needed] duplicate delivery for {file_name}, skipping", file=sys.stderr)
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"ok": true, "duplicate": true}')
+            return
 
         try:
             client = inspector.make_client()
