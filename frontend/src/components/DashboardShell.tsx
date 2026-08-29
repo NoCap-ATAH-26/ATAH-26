@@ -30,7 +30,7 @@ export function DashboardShell({ email }: { email: string | null }) {
       <SmokeyCursor />
       <DashboardHeader connected={connected} email={email} />
 
-      <section className="mx-auto max-w-6xl px-6 py-10">
+      <section className="px-6 py-10 sm:px-10 lg:px-16 xl:px-24">
         <div className="space-y-8">
           <StatTiles rows={rows} />
           <DocumentUpload />
