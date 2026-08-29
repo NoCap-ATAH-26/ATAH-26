@@ -99,11 +99,11 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
         <h3 className="font-display text-xl italic">The Pipeline, Live</h3>
         <p className="text-xs text-ink-muted">Event-driven: Pub/Sub routes each stage automatically, no human between steps</p>
       </div>
-      <div className="flex min-w-max items-center gap-2">
+      <div className="flex items-center gap-2">
         {stages.map((s, i) => (
-          <div key={s.key} className="flex items-center gap-2">
+          <div key={s.key} className="flex flex-1 items-center gap-2">
             <div
-              className="pipeline-node flex w-32 flex-col items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 py-5"
+              className="pipeline-node flex min-w-[7.5rem] flex-1 flex-col items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 py-5"
               style={
                 s.count > 0
                   ? { borderColor: `color-mix(in srgb, ${s.colorVar} 45%, var(--color-border))` }
@@ -115,16 +115,16 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
               <span className="text-[11px] text-ink-muted">{s.label}</span>
             </div>
             {i < stages.length - 1 && (
-              <div className="pipeline-arrow flex items-center">
+              <div className="pipeline-arrow flex flex-1 items-center">
                 <div
-                  className="flow-pulse h-[2px] w-10"
+                  className="flow-pulse h-[2px] flex-1"
                   style={{
                     backgroundImage: `linear-gradient(90deg, var(--color-border) 0%, ${s.colorVar} 50%, var(--color-border) 100%)`,
                     backgroundSize: "200% 100%",
                     filter: `drop-shadow(0 0 6px color-mix(in srgb, ${s.colorVar} 60%, transparent))`,
                   }}
                 />
-                <ArrowRight size={14} className="text-ink-faint" />
+                <ArrowRight size={14} className="shrink-0 text-ink-faint" />
               </div>
             )}
           </div>
