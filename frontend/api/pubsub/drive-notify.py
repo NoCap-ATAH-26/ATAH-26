@@ -24,7 +24,7 @@ import drive_client  # noqa: E402
 import pubsub_bus  # noqa: E402
 import pubsub_dedup  # noqa: E402
 import storage  # noqa: E402
-from audit_log import _get_client  # noqa: E402
+from admin_client import get_admin_client  # noqa: E402
 
 DOCUMENT_INGESTED_TOPIC = "nocap-document-ingested"
 
@@ -41,7 +41,7 @@ class handler(BaseHTTPRequestHandler):
         resource_state = self.headers.get("X-Goog-Resource-State")
         message_number = self.headers.get("X-Goog-Message-Number")
 
-        client = _get_client()
+        client = get_admin_client()
         if client is None:
             self.send_response(200)
             self.end_headers()

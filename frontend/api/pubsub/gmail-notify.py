@@ -18,18 +18,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "_lib"))
 
+from admin_client import get_admin_client  # noqa: E402
 import gmail_client  # noqa: E402
 import pubsub_bus  # noqa: E402
 import pubsub_dedup  # noqa: E402
 import pubsub_verify  # noqa: E402
 import storage  # noqa: E402
-from supabase import create_client  # noqa: E402
 
 DOCUMENT_INGESTED_TOPIC = "nocap-document-ingested"
-
-
-def _admin_db():
-    return create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
 
 
 class handler(BaseHTTPRequestHandler):
@@ -55,7 +51,7 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
-            db = _admin_db()
+            db = get_admin_client()
             row = (
                 db.table("gmail_watch_state")
                 .select("last_history_id")

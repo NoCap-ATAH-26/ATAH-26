@@ -7,13 +7,13 @@ through the browser instead of only a manually-configured env var.
 
 import sys
 
-from audit_log import _get_client
+from admin_client import get_admin_client
 
 
 def get_connection(source: str) -> dict | None:
     """Returns the source_connections row for `source` if it's connected and
     has a refresh token, else None (never raises -- callers fall back)."""
-    client = _get_client()
+    client = get_admin_client()
     if client is None:
         return None
 
