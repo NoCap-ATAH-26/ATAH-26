@@ -36,3 +36,15 @@ export const STAGE_LABEL: Record<Stage, string> = {
   repair: "Repair",
   verifier: "Verifier",
 };
+
+export type ConnectionStatus = "disconnected" | "connected" | "error";
+
+export interface SourceConnectionRow {
+  id: string;
+  source: string;
+  status: ConnectionStatus;
+  display_name: string | null;
+  scopes: string[] | null;
+  connected_at: string | null;
+  updated_at: string;
+}

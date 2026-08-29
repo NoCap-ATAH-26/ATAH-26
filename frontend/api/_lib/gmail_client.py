@@ -32,13 +32,29 @@ TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 
 def _access_token() -> str:
-    client_id = os.getenv("GMAIL_OAUTH_CLIENT_ID")
-    client_secret = os.getenv("GMAIL_OAUTH_CLIENT_SECRET")
-    refresh_token = os.getenv("GMAIL_REFRESH_TOKEN")
+    from source_connections import get_connection
+
+    # Prefer the token a user granted by clicking "Connect Google" on
+    # /dashboard/sources (source_connections, refreshed with the Web OAuth
+    # client Supabase Auth already uses) -- fall back to the older
+    # manually-configured Desktop-app client for anyone who ran
+    # scripts/gmail_oauth_setup.py before this existed.
+    connection = get_connection("google")
+    if connection:
+        client_id = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+        client_secret = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+        refresh_token = connection["refresh_token"]
+    else:
+        client_id = os.getenv("GMAIL_OAUTH_CLIENT_ID")
+        client_secret = os.getenv("GMAIL_OAUTH_CLIENT_SECRET")
+        refresh_token = os.getenv("GMAIL_REFRESH_TOKEN")
+
     if not (client_id and client_secret and refresh_token):
         raise EnvironmentError(
-            "GMAIL_OAUTH_CLIENT_ID/GMAIL_OAUTH_CLIENT_SECRET/GMAIL_REFRESH_TOKEN "
-            "not set -- run scripts/gmail_oauth_setup.py once to get a refresh token."
+            "No Gmail credentials available -- connect Google from "
+            "/dashboard/sources, or set GMAIL_OAUTH_CLIENT_ID/"
+            "GMAIL_OAUTH_CLIENT_SECRET/GMAIL_REFRESH_TOKEN (see "
+            "scripts/gmail_oauth_setup.py)."
         )
     response = requests.post(
         TOKEN_URL,

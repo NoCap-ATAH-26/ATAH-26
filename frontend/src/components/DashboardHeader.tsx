@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-import { LogOut, MessageSquare } from "lucide-react";
+import { LogOut, MessageSquare, Plug } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -46,6 +46,13 @@ export function DashboardHeader({
           Status[{connected ? "●" : "○"}]
         </span>
         {email && <span className="hidden normal-case tracking-normal text-ink-muted sm:inline">{email}</span>}
+        <Link
+          href="/dashboard/sources"
+          className="flex items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3 py-1.5 text-ink transition hover:bg-surface-2"
+        >
+          <Plug size={13} />
+          Sources
+        </Link>
         <Link
           href="/dashboard/chat"
           className="flex items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3 py-1.5 text-ink transition hover:glow-blue hover:border-transparent hover:bg-surface-2"
