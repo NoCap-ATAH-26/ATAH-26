@@ -115,6 +115,11 @@ def verify_document(
             "reason": "Verifier cannot check a repair that doesn't exist yet.",
         }
         audit_log.log_event(file_name, "verifier", missing)
+
+        import notifier
+
+        notifier.notify(missing, stage="verifier")
+
         return missing
 
     prompt = build_verify_prompt(file_name, repaired_text, sources)
@@ -145,4 +150,9 @@ def verify_document(
         result["published_path"] = storage.write_published(file_name, repaired_text.encode("utf-8"))
 
     audit_log.log_event(file_name, "verifier", result)
+
+    import notifier
+
+    notifier.notify(result, stage="verifier")
+
     return result

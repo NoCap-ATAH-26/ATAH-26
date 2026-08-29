@@ -188,6 +188,10 @@ def inspect_document(file_name: str, client: genai.Client | None, sources: dict[
 
     audit_log.log_event(file_name, "inspector", result)
 
+    import notifier
+
+    notifier.notify(result, stage="inspector")
+
     return result
 
 
