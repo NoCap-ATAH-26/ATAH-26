@@ -5,7 +5,7 @@ Takes a document that Repair Agent has already corrected and checks it
 against the official approved policy sources ONE MORE TIME before it is
 allowed to be marked approved. This is the final gate in the pipeline:
 
-    Inspector -> Repair -> Verifier -> published_documents/ (logged to Supabase)
+    Inspector -> Repair -> Verifier -> Firestore
 
 For each file it:
 1. Reads the corrected version from repaired_documents/<file_name>.
@@ -134,7 +134,7 @@ def verify_document(
     """Verify a single repaired document. Publishes it if it passes."""
     repaired_path = REPAIRED_DOCUMENTS_DIR / file_name
     if not repaired_path.exists():
-        missing = {
+        return {
             "file_name": file_name,
             "status": "quarantined",
             "published_path": None,
@@ -145,19 +145,22 @@ def verify_document(
             "source_files": [],
             "reason": "Verifier cannot check a repair that doesn't exist yet.",
         }
-        inspector.audit_log.log_event(file_name, "verifier", missing)
-        return missing
 
     repaired_text = repaired_path.read_text(encoding="utf-8")
     prompt = build_verify_prompt(file_name, repaired_text, sources)
 
-    result = inspector.llm_client.generate_json(
-        client=client,
+    response = client.models.generate_content(
         model=MODEL,
-        system_instruction=SYSTEM_INSTRUCTION,
         contents=prompt,
-        response_schema=VERIFY_SCHEMA,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_INSTRUCTION,
+            response_mime_type="application/json",
+            response_schema=VERIFY_SCHEMA,
+            temperature=0,
+        ),
     )
+
+    result = json.loads(response.text)
 
     # Defensive checks, same philosophy as Inspector and Repair.
     if result.get("status") not in VALID_STATUSES:
@@ -179,19 +182,21 @@ def verify_document(
         shutil.copyfile(repaired_path, published_path)
         result["published_path"] = str(published_path.relative_to(PROJECT_ROOT))
 
-    inspector.audit_log.log_event(file_name, "verifier", result)
     return result
 
 
-def run(file_names: list[str], delay_seconds: float = RATE_LIMIT_DELAY_SECONDS) -> list[dict]:
-    client = None
-    if inspector.llm_client.provider() != "openai":
-        api_key = inspector.os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise EnvironmentError(
-                "GEMINI_API_KEY not found. Make sure .env exists and is loaded."
-            )
-        client = genai.Client(api_key=api_key)
+def run(
+    file_names: list[str],
+    delay_seconds: float = RATE_LIMIT_DELAY_SECONDS,
+    log_to_firestore: bool = False,
+) -> list[dict]:
+    api_key = inspector.os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise EnvironmentError(
+            "GEMINI_API_KEY not found. Make sure .env exists and is loaded."
+        )
+
+    client = genai.Client(api_key=api_key)
     sources = inspector.load_approved_sources()
 
     results = []
@@ -200,6 +205,24 @@ def run(file_names: list[str], delay_seconds: float = RATE_LIMIT_DELAY_SECONDS) 
         result = verify_document(file_name, client, sources)
         results.append(result)
         print(json.dumps(result, indent=2))
+
+        if log_to_firestore:
+            import firestore_logger
+
+            firestore_logger.log_stage(
+                file_name=file_name,
+                stage="verifier",
+                status=result["status"],
+                reason=result["reason"],
+                issues=result.get("remaining_issues"),
+                source_files=result.get("source_files"),
+                published_path=result.get("published_path"),
+            )
+            print(f"Logged to Firestore: {file_name}", file=sys.stderr)
+
+        import notifier
+
+        notifier.notify(result, stage="verifier")
 
         is_last = i == len(file_names) - 1
         if delay_seconds > 0 and not is_last:
@@ -230,19 +253,24 @@ def main():
             "Set to 0 once you're on a paid tier."
         ),
     )
+    parser.add_argument(
+        "--log",
+        action="store_true",
+        help="Log each result to Firestore (requires setup — see firestore_logger.py).",
+    )
     args = parser.parse_args()
 
     if args.all:
-        file_names = sorted(p.name for p in REPAIRED_DOCUMENTS_DIR.iterdir() if p.is_file())
+        file_names = sorted(p.name for p in REPAIRED_DOCUMENTS_DIR.glob("*.md"))
         if not file_names:
-            print(f"No files found in {REPAIRED_DOCUMENTS_DIR}", file=sys.stderr)
+            print(f"No .md files found in {REPAIRED_DOCUMENTS_DIR}", file=sys.stderr)
             sys.exit(1)
     elif args.files:
         file_names = args.files
     else:
         parser.error("Provide file name(s) to verify, or use --all")
 
-    run(file_names, delay_seconds=args.delay)
+    run(file_names, delay_seconds=args.delay, log_to_firestore=args.log)
 
 
 if __name__ == "__main__":

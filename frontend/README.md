@@ -112,4 +112,4 @@ Visit `/dashboard` for the live audit view.
 
 ## Team
 
-Built by [Namyarajrawat] and [Bhumika Singh] for the All Things Agentic Hackathon.
+Built by [Namyaraj Rawat] and [Bhumika Singh] for the All Things Agentic Hackathon.

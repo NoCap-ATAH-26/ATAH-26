@@ -16,7 +16,6 @@ Usage:
 import argparse
 import json
 import os
-import shutil
 import sys
 import time
 from pathlib import Path
@@ -24,9 +23,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-
-import audit_log
-import llm_client
 
 load_dotenv()
 
@@ -36,9 +32,7 @@ MODEL = "gemini-3.5-flash"
 # between calls to avoid 429 RESOURCE_EXHAUSTED errors when processing many
 # documents in one run. 13 seconds keeps us safely under 5/60s.
 # If you upgrade to a paid tier, set this to 0 (or pass --delay 0).
-# Doesn't apply when LLM_PROVIDER=openai -- neither a local Ollama nor most
-# hosted alternatives (Mistral's free tier included) have this constraint.
-RATE_LIMIT_DELAY_SECONDS = 0 if llm_client.provider() == "openai" else 13
+RATE_LIMIT_DELAY_SECONDS = 13
 
 # Resolve project paths relative to this file, so it works no matter
 # what directory it's launched from.
@@ -46,7 +40,6 @@ BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BACKEND_DIR.parent
 APPROVED_SOURCES_DIR = PROJECT_ROOT / "approved_sources"
 INCOMING_DOCUMENTS_DIR = PROJECT_ROOT / "incoming_docs"
-PUBLISHED_DOCUMENTS_DIR = PROJECT_ROOT / "published_documents"
 
 VALID_STATUSES = {"approved", "needs_repair", "quarantined"}
 
@@ -138,49 +131,27 @@ def build_prompt(incoming_name: str, incoming_text: str, sources: dict[str, str]
     )
 
 
-def _load_incoming_content(path: Path, client: genai.Client | None):
-    """Text files come back as str, same as always. Anything that isn't
-    valid UTF-8 text (PDFs, images, docx, etc.) gets uploaded to Gemini's
-    Files API instead, so the model reads it natively rather than us needing
-    a format-specific text extractor for every possible file type -- not
-    available when LLM_PROVIDER=openai (client is None in that case), since
-    that path has no equivalent to Gemini's Files API in this codebase."""
-    try:
-        return path.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        if client is None:
-            raise RuntimeError(
-                f"{path.name} is a binary file, which needs Gemini's Files API to "
-                "read -- not supported when LLM_PROVIDER=openai. Unset "
-                "LLM_PROVIDER (or set it to gemini) to process this file."
-            )
-        return client.files.upload(file=str(path))
-
-
-def inspect_document(file_name: str, client: genai.Client | None, sources: dict[str, str]) -> dict:
+def inspect_document(file_name: str, client: genai.Client, sources: dict[str, str]) -> dict:
     """Run a single incoming document through the Inspector Agent."""
     incoming_path = INCOMING_DOCUMENTS_DIR / file_name
     if not incoming_path.exists():
         raise FileNotFoundError(f"Incoming document not found: {incoming_path}")
 
-    incoming_content = _load_incoming_content(incoming_path, client)
-    if isinstance(incoming_content, str):
-        contents = build_prompt(file_name, incoming_content, sources)
-    else:
-        # Binary file: the text prompt describes it, the actual bytes are a
-        # second content part Gemini reads directly.
-        contents = [
-            build_prompt(file_name, "(attached below — read it directly)", sources),
-            incoming_content,
-        ]
+    incoming_text = incoming_path.read_text(encoding="utf-8")
+    prompt = build_prompt(file_name, incoming_text, sources)
 
-    result = llm_client.generate_json(
-        client=client,
+    response = client.models.generate_content(
         model=MODEL,
-        system_instruction=SYSTEM_INSTRUCTION,
-        contents=contents,
-        response_schema=RESULT_SCHEMA,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_INSTRUCTION,
+            response_mime_type="application/json",
+            response_schema=RESULT_SCHEMA,
+            temperature=0,
+        ),
     )
+
+    result = json.loads(response.text)
 
     # Defensive checks so bad model output never silently breaks the pipeline.
     result["file_name"] = file_name  # trust our own file system, not the model
@@ -194,30 +165,21 @@ def inspect_document(file_name: str, client: genai.Client | None, sources: dict[
             f"Inspector cited unknown source file(s) for {file_name}: {unknown_sources}"
         )
 
-    # A document that's already correct doesn't need to go through Repair
-    # and Verifier to be published, publish it as-is. needs_repair and
-    # quarantined documents are NOT published here; Repair/Verifier own that.
-    result["published_path"] = None
-    if result["status"] == "approved":
-        PUBLISHED_DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
-        published_path = PUBLISHED_DOCUMENTS_DIR / file_name
-        shutil.copyfile(incoming_path, published_path)
-        result["published_path"] = str(published_path.relative_to(PROJECT_ROOT))
-
-    audit_log.log_event(file_name, "inspector", result)
-
     return result
 
 
-def run(file_names: list[str], delay_seconds: float = RATE_LIMIT_DELAY_SECONDS) -> list[dict]:
-    client = None
-    if llm_client.provider() != "openai":
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise EnvironmentError(
-                "GEMINI_API_KEY not found. Make sure .env exists and is loaded."
-            )
-        client = genai.Client(api_key=api_key)
+def run(
+    file_names: list[str],
+    delay_seconds: float = RATE_LIMIT_DELAY_SECONDS,
+    log_to_firestore: bool = False,
+) -> list[dict]:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise EnvironmentError(
+            "GEMINI_API_KEY not found. Make sure .env exists and is loaded."
+        )
+
+    client = genai.Client(api_key=api_key)
     sources = load_approved_sources()
 
     results = []
@@ -226,6 +188,26 @@ def run(file_names: list[str], delay_seconds: float = RATE_LIMIT_DELAY_SECONDS) 
         result = inspect_document(file_name, client, sources)
         results.append(result)
         print(json.dumps(result, indent=2))
+
+        if log_to_firestore:
+            import firestore_logger
+
+            original_text = (INCOMING_DOCUMENTS_DIR / file_name).read_text(encoding="utf-8")
+            firestore_logger.log_stage(
+                file_name=file_name,
+                stage="inspector",
+                status=result["status"],
+                reason=result["reason"],
+                risk_score=result.get("risk_score"),
+                issues=result.get("issues"),
+                source_files=result.get("source_files"),
+                original_text=original_text,
+            )
+            print(f"Logged to Firestore: {file_name}", file=sys.stderr)
+
+        import notifier
+
+        notifier.notify(result, stage="inspector")
 
         is_last = i == len(file_names) - 1
         if delay_seconds > 0 and not is_last:
@@ -256,19 +238,24 @@ def main():
             "Set to 0 once you're on a paid tier."
         ),
     )
+    parser.add_argument(
+        "--log",
+        action="store_true",
+        help="Log each result to Firestore (requires setup — see firestore_logger.py).",
+    )
     args = parser.parse_args()
 
     if args.all:
-        file_names = sorted(p.name for p in INCOMING_DOCUMENTS_DIR.iterdir() if p.is_file())
+        file_names = sorted(p.name for p in INCOMING_DOCUMENTS_DIR.glob("*.md"))
         if not file_names:
-            print(f"No files found in {INCOMING_DOCUMENTS_DIR}", file=sys.stderr)
+            print(f"No .md files found in {INCOMING_DOCUMENTS_DIR}", file=sys.stderr)
             sys.exit(1)
     elif args.files:
         file_names = args.files
     else:
         parser.error("Provide file name(s) to inspect, or use --all")
 
-    run(file_names, delay_seconds=args.delay)
+    run(file_names, delay_seconds=args.delay, log_to_firestore=args.log)
 
 
 if __name__ == "__main__":
