@@ -26,6 +26,7 @@ INCOMING_BUCKET = "incoming-uploads"
 OUTPUT_BUCKET = "pipeline-output"
 
 _client = None
+_admin_client = None
 
 
 def _get_client():
@@ -46,9 +47,42 @@ def _get_client():
     return _client
 
 
+def _get_admin_client():
+    """incoming-uploads' insert policy is `authenticated`-only (dashboard
+    uploads come from a logged-in user's session) -- a server-side source
+    like gmail_client.py has no user session at all, so it needs the
+    service-role key instead of SUPABASE_KEY, which only carries the anon
+    role and would get rejected by that same policy."""
+    global _admin_client
+    if _admin_client is not None:
+        return _admin_client
+
+    from supabase import create_client
+
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        raise EnvironmentError(
+            "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set. Writing to "
+            "incoming-uploads from a server-side source needs the "
+            "service-role key, not the anon SUPABASE_KEY."
+        )
+    _admin_client = create_client(url, key)
+    return _admin_client
+
+
 def read_incoming(file_name: str) -> bytes:
     client = _get_client()
     return client.storage.from_(INCOMING_BUCKET).download(file_name)
+
+
+def write_incoming(file_name: str, data: bytes) -> None:
+    """Used by sources that don't go through the dashboard's own upload
+    (e.g. gmail_client.py pulling an email attachment) -- same bucket the
+    dashboard's DocumentUpload.tsx writes to, so the rest of the pipeline
+    treats it identically either way."""
+    client = _get_admin_client()
+    client.storage.from_(INCOMING_BUCKET).upload(file_name, data, {"upsert": "true"})
 
 
 def read_repaired(file_name: str) -> str | None:

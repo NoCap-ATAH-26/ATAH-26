@@ -3,6 +3,16 @@
     "api/pubsub/*.py": {
       "maxDuration": 60,
       "includeFiles": "api/_lib/**"
+    },
+    "api/cron/*.py": {
+      "maxDuration": 30,
+      "includeFiles": "api/_lib/**"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/renew-gmail-watch",
+      "schedule": "0 3 * * 1"
+    }
+  ]
 }

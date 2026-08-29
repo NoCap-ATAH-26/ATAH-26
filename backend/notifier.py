@@ -5,9 +5,10 @@ Turns a pipeline decision into something a human can actually act on,
 across two layers:
 
 1. IN-APP — every result (critical, important, or info) gets written to a
-   Firestore "notifications" collection, which the dashboard's bell icon
-   reads from. Each notification carries structured evidence — what
-   changed, impact, source, recommended action — not just a status string.
+   Supabase "notifications" table, which the dashboard's bell icon reads
+   from (live, via Supabase Realtime). Each notification carries structured
+   evidence — what changed, impact, source, recommended action — not just
+   a status string.
 
 2. EMAIL / SLACK — critical results (quarantined) fire immediately via
    Resend + Slack, since that's the case someone needs to see right now,
@@ -28,8 +29,8 @@ Setup:
      NOTIFY_EMAIL_FROM=alerts@yourdomain.com
      NOTIFY_EMAIL_TO=you@yourcompany.com
      SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
-3. In-app notifications reuse your existing Firestore setup — no extra
-   config needed if firestore_logger.py already works.
+3. In-app notifications reuse your existing Supabase setup, no extra
+   config needed if audit_log.py already works (same SUPABASE_URL/KEY).
 
 Usage (called from inspector.py / repair.py / verifier.py):
     from notifier import notify
@@ -54,7 +55,7 @@ SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 _EMAIL_CONFIGURED = bool(RESEND_API_KEY and NOTIFY_EMAIL_FROM and NOTIFY_EMAIL_TO)
 _SLACK_CONFIGURED = bool(SLACK_WEBHOOK_URL)
 
-NOTIFICATIONS_COLLECTION = "notifications"
+NOTIFICATIONS_TABLE = "notifications"
 
 SEVERITY_CONFIG = {
     "critical": {"emoji": "🔴", "label": "Critical", "slack_emoji": ":red_circle:"},
@@ -117,10 +118,12 @@ def build_notification(result: dict, stage: str) -> dict:
 
 def _write_in_app_notification(notification: dict) -> None:
     try:
-        import firestore_logger
+        from audit_log import _get_client
 
-        client = firestore_logger.get_client()
-        client.collection(NOTIFICATIONS_COLLECTION).add(notification)
+        client = _get_client()
+        if client is None:
+            return
+        client.table(NOTIFICATIONS_TABLE).insert(notification).execute()
         print(f"[notifier] In-app notification written: {notification['file_name']}")
     except Exception as e:
         # Notifications should never break the pipeline itself.

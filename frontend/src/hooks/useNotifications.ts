@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export type Severity = "critical" | "important" | "info";
 
@@ -23,34 +22,47 @@ export type Notification = {
 
 /**
  * Live-subscribes to the 50 most recent notifications, newest first.
- * Updates automatically whenever inspector.py / verifier.py call
- * notifier.notify() — no manual refresh needed.
+ * Updates automatically whenever backend/notifier.py's notify() writes a
+ * row to Supabase's "notifications" table — no manual refresh needed.
  */
 export function useNotifications() {
+  const supabase = useMemo(() => createClient(), []);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(
-      collection(db, "notifications"),
-      orderBy("timestamp", "desc"),
-      limit(50)
-    );
+    let active = true;
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        setNotifications(snapshot.docs.map((doc) => doc.data() as Notification));
-        setLoading(false);
-      },
-      (err) => {
-        console.error("Notifications subscription error:", err);
-        setLoading(false);
-      }
-    );
+    async function loadInitial() {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .order("timestamp", { ascending: false })
+        .limit(50);
 
-    return () => unsubscribe();
-  }, []);
+      if (!active) return;
+      if (!error && data) setNotifications(data as Notification[]);
+      setLoading(false);
+    }
+
+    loadInitial();
+
+    const channel = supabase
+      .channel("notifications_live")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications" },
+        (payload) => {
+          setNotifications((prev) => [payload.new as Notification, ...prev].slice(0, 50));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
 
   return { notifications, loading };
 }
