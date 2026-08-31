@@ -60,7 +60,7 @@ That is the actual shape of the product: not a chatbot that answers questions, a
 
 ### Try it yourself
 
-- **Live, no login:** `https://atah-26-topaz.vercel.app/demo` shows the real audit trail in real time, read straight from the same Supabase table the pipeline writes to.
+- **Live, no login:** `https://atah-26-production.up.railway.app/demo` shows the real audit trail in real time, read straight from the same Supabase table the pipeline writes to.
 - **One command, full run:** `python backend/run_demo.py` processes the ten canonical documents end to end and prints exactly which were approved, repaired, or quarantined, and why, including the security catch.
 
 ## How we built it
