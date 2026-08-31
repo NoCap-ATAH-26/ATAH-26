@@ -25,6 +25,9 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+import audit_log
+import llm_client
+
 load_dotenv()
 
 MODEL = "gemini-3.5-flash"
@@ -133,7 +136,7 @@ def build_prompt(incoming_name: str, incoming_text: str, sources: dict[str, str]
     )
 
 
-def inspect_document(file_name: str, client: genai.Client, sources: dict[str, str]) -> dict:
+def inspect_document(file_name: str, client: genai.Client | None, sources: dict[str, str]) -> dict:
     """Run a single incoming document through the Inspector Agent."""
     incoming_path = INCOMING_DOCUMENTS_DIR / file_name
     if not incoming_path.exists():
@@ -142,24 +145,25 @@ def inspect_document(file_name: str, client: genai.Client, sources: dict[str, st
     incoming_text = incoming_path.read_text(encoding="utf-8")
     prompt = build_prompt(file_name, incoming_text, sources)
 
-    response = client.models.generate_content(
+    result = llm_client.generate_json(
+        client=client,
         model=MODEL,
+        system_instruction=SYSTEM_INSTRUCTION,
         contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_INSTRUCTION,
-            response_mime_type="application/json",
-            response_schema=RESULT_SCHEMA,
-            temperature=0,
-        ),
+        response_schema=RESULT_SCHEMA,
     )
-
-    result = json.loads(response.text)
 
     # Defensive checks so bad model output never silently breaks the pipeline.
     result["file_name"] = file_name  # trust our own file system, not the model
     if result.get("status") not in VALID_STATUSES:
         raise ValueError(f"Inspector returned invalid status for {file_name}: {result.get('status')!r}")
-    if not isinstance(result.get("source_files"), list) or not result["source_files"]:
+    # quarantined is the one status allowed an empty source_files: a document
+    # with no legitimate basis in any approved source (e.g. a pure prompt
+    # injection attempt) has nothing real to cite. approved/needs_repair
+    # always need at least one, since that's what grounds the verdict.
+    if not isinstance(result.get("source_files"), list):
+        raise ValueError(f"Inspector returned no source_files for {file_name}")
+    if not result["source_files"] and result["status"] != "quarantined":
         raise ValueError(f"Inspector returned no source_files for {file_name}")
     unknown_sources = set(result["source_files"]) - set(sources.keys())
     if unknown_sources:

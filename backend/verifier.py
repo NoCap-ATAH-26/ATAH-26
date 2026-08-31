@@ -149,18 +149,13 @@ def verify_document(
     repaired_text = repaired_path.read_text(encoding="utf-8")
     prompt = build_verify_prompt(file_name, repaired_text, sources)
 
-    response = client.models.generate_content(
+    result = inspector.llm_client.generate_json(
+        client=client,
         model=MODEL,
+        system_instruction=SYSTEM_INSTRUCTION,
         contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_INSTRUCTION,
-            response_mime_type="application/json",
-            response_schema=VERIFY_SCHEMA,
-            temperature=0,
-        ),
+        response_schema=VERIFY_SCHEMA,
     )
-
-    result = json.loads(response.text)
 
     # Defensive checks, same philosophy as Inspector and Repair.
     if result.get("status") not in VALID_STATUSES:
