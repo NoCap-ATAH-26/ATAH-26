@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import { MessageSquare, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from "lucide-react";
 
 export type ChatSession = { id: number; title: string; updated_at: string };
 
@@ -16,6 +16,7 @@ export function ChatSessionsPanel({
   onToggle,
   onSelect,
   onNewChat,
+  onDelete,
 }: {
   sessions: ChatSession[];
   activeSessionId: number | null;
@@ -23,6 +24,7 @@ export function ChatSessionsPanel({
   onToggle: () => void;
   onSelect: (id: number) => void;
   onNewChat: () => void;
+  onDelete: (id: number) => void;
 }) {
   if (!open) {
     return (
@@ -67,19 +69,33 @@ export function ChatSessionsPanel({
           <p className="px-2 py-4 text-center text-xs text-zinc-500">No chats yet</p>
         )}
         {sessions.map((s) => (
-          <button
+          <div
             key={s.id}
-            type="button"
-            onClick={() => onSelect(s.id)}
-            className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs transition ${
+            className={`group flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs transition ${
               s.id === activeSessionId
                 ? "bg-white/10 text-zinc-100"
                 : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
             }`}
           >
-            <MessageSquare size={13} className="shrink-0 opacity-60" />
-            <span className="truncate">{s.title}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => onSelect(s.id)}
+              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+            >
+              <MessageSquare size={13} className="shrink-0 opacity-60" />
+              <span className="truncate">{s.title}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(`Delete "${s.title}"? This can't be undone.`)) onDelete(s.id);
+              }}
+              aria-label={`Delete ${s.title}`}
+              className="shrink-0 rounded-md p-1 text-zinc-500 opacity-0 transition hover:bg-white/10 hover:text-red-300 group-hover:opacity-100"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
         ))}
       </div>
     </div>

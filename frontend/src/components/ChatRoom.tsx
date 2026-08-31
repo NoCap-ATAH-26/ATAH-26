@@ -107,6 +107,29 @@ export function ChatRoom({ email }: { email: string | null }) {
     };
   }, [supabase, activeSessionId]);
 
+  // Deletes messages first — chat_messages.session_id has no ON DELETE
+  // CASCADE from chat_sessions, so leaving them would orphan rows RLS still
+  // scopes to this user but that no session would ever load again.
+  async function deleteSession(id: number) {
+    const { error: messagesError } = await supabase
+      .from("chat_messages")
+      .delete()
+      .eq("session_id", id);
+    if (messagesError) {
+      console.error("[chat] failed to delete messages for session:", messagesError);
+      return;
+    }
+
+    const { error: sessionError } = await supabase.from("chat_sessions").delete().eq("id", id);
+    if (sessionError) {
+      console.error("[chat] failed to delete session:", sessionError);
+      return;
+    }
+
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+    if (activeSessionId === id) setActiveSessionId(null);
+  }
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const text = draft.trim();
@@ -277,6 +300,7 @@ export function ChatRoom({ email }: { email: string | null }) {
               onToggle={() => setSidebarOpen((v) => !v)}
               onSelect={setActiveSessionId}
               onNewChat={() => setActiveSessionId(null)}
+              onDelete={deleteSession}
             />
 
             {/* Kept the white tint very faint on purpose — a flat opaque fill
