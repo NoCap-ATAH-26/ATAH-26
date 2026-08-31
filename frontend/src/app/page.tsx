@@ -8,6 +8,7 @@ import { ProblemSection } from "@/components/ProblemSection";
 import { CTASection } from "@/components/CTASection";
 import { SectionBlend } from "@/components/SectionBlend";
 import { TunnelExperience, type TunnelPanelConfig } from "@/components/TunnelExperience";
+import { Footer } from "@/components/Footer";
 import SmokeyCursor from "@/components/ui/smokey-cursor";
 
 const TUNNEL_PANELS: TunnelPanelConfig[] = [
@@ -28,10 +29,7 @@ export default function Home() {
       <TunnelExperience panels={TUNNEL_PANELS} />
       <SectionBlend />
       <CTASection />
-
-      <footer className="border-t border-border px-6 py-8 text-center font-mono text-[11px] text-ink-faint">
-        NoCap — Taskmaster track, All Things Agentic Hackathon
-      </footer>
+      <Footer />
     </main>
   );
 }
