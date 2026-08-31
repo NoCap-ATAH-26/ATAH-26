@@ -103,7 +103,7 @@ export function PipelineStrip({ rows }: { rows: AuditLogRow[] }) {
         {stages.map((s, i) => (
           <div key={s.key} className="flex items-center gap-2">
             <div
-              className="pipeline-node flex w-32 flex-col items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 py-5"
+              className="pipeline-node flex w-32 flex-col items-center gap-2 rounded-[28px] border border-border bg-surface-2 px-4 py-5"
               style={
                 s.count > 0
                   ? { borderColor: `color-mix(in srgb, ${s.colorVar} 45%, var(--color-border))` }
