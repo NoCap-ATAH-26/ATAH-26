@@ -1,0 +1,14 @@
+# Config for the Railway "worker" service only — set that service's Root
+# Directory to the repo root (not backend/) so this file is picked up, and
+# so orchestrator.py can still reach approved_sources/, incoming_docs/, and
+# published_documents/ one level above backend/. The frontend service uses
+# its own Root Directory (frontend/) and Nixpacks auto-detection instead,
+# so this file has no effect on it.
+[phases.setup]
+nixPkgs = ["python310"]
+
+[phases.install]
+cmds = ["pip install -r backend/requirements.txt"]
+
+[start]
+cmd = "sh backend/start.sh"
