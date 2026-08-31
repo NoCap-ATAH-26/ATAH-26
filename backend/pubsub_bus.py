@@ -23,7 +23,11 @@ One-time setup (needs the Pub/Sub API enabled on the project):
     done
 
 Auth: gcloud auth application-default login (or GOOGLE_APPLICATION_CREDENTIALS
-pointing at a service account key). Requires GOOGLE_CLOUD_PROJECT in .env.
+pointing at a service account key) on a machine with gcloud set up. On a
+host with neither (Railway, Cloud Run, etc.), set GOOGLE_APPLICATION_CREDENTIALS_JSON
+instead -- the service account key's raw JSON as a string, not a file path,
+same convention frontend/api/_lib/pubsub_bus.py already uses. Requires
+GOOGLE_CLOUD_PROJECT either way.
 """
 
 import json
@@ -45,12 +49,27 @@ def _project_id() -> str:
     return project_id
 
 
+def _credentials():
+    """Explicit service-account credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON
+    when set, so publish()/listen() work on hosts with no gcloud and no
+    credentials file (only a pasted-JSON env var). Returns None otherwise,
+    letting the client fall back to normal ADC discovery (gcloud auth
+    application-default login, or GOOGLE_APPLICATION_CREDENTIALS as a file
+    path) exactly as before."""
+    creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    if not creds_json:
+        return None
+    from google.oauth2 import service_account
+
+    return service_account.Credentials.from_service_account_info(json.loads(creds_json))
+
+
 def _get_publisher():
     global _publisher
     if _publisher is None:
         from google.cloud import pubsub_v1
 
-        _publisher = pubsub_v1.PublisherClient()
+        _publisher = pubsub_v1.PublisherClient(credentials=_credentials())
     return _publisher
 
 
@@ -59,7 +78,7 @@ def _get_subscriber():
     if _subscriber is None:
         from google.cloud import pubsub_v1
 
-        _subscriber = pubsub_v1.SubscriberClient()
+        _subscriber = pubsub_v1.SubscriberClient(credentials=_credentials())
     return _subscriber
 
 

@@ -19,12 +19,14 @@ publish_incoming.py, which is the "watching for a change" side of Taskmaster:
 new files showing up is the change being watched for.
 """
 
+import os
 import sys
 from concurrent.futures import wait, FIRST_EXCEPTION
 
 from google import genai
 
 import inspector
+import llm_client
 import repair
 import verifier
 import pubsub_bus
@@ -62,8 +64,8 @@ def make_handlers(client: genai.Client, sources: dict[str, str]):
 
 def main():
     client = None
-    if inspector.llm_client.provider() != "openai":
-        api_key = inspector.os.getenv("GEMINI_API_KEY")
+    if llm_client.provider() != "openai":
+        api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise EnvironmentError("GEMINI_API_KEY not found. Make sure .env exists and is loaded.")
         client = genai.Client(api_key=api_key)
