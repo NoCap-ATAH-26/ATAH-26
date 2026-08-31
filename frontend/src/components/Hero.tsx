@@ -66,8 +66,8 @@ export function Hero() {
           Guarding what&apos;s true.
         </div>
         <div className="flex items-center gap-6">
-          <a href="#how-it-works">How it works</a>
-          <a href="#features">Features</a>
+          <Link href="/how-it-works">How it works</Link>
+          <Link href="/features">Features</Link>
           <Link
             href="/login"
             className="normal-case tracking-normal rounded-full border border-border-strong bg-surface px-3 py-1 text-ink transition hover:bg-surface-2"

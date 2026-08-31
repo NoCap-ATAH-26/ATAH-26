@@ -58,7 +58,7 @@ export function FeaturesGrid() {
   );
 
   return (
-    <section id="features" ref={scope} className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
+    <section ref={scope} className="mx-auto max-w-6xl px-6 py-24 sm:px-10">
       <div className="features-heading mb-12 max-w-2xl">
         <div className="hud-label uppercase">Features</div>
         <h2 className="mt-3 font-display text-3xl italic sm:text-4xl">
