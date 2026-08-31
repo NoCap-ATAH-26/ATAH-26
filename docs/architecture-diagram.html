@@ -1,0 +1,362 @@
+<title>NoCap Architecture</title>
+<meta name="description" content="How a document becomes trustworthy in NoCap: the autonomous Inspector, Repair, and Verifier pipeline, its Pub/Sub triggers, and its live audit trail.">
+
+<style>
+  :root {
+    --bg: #0a0f0c;
+    --surface: #10160f;
+    --surface-2: #171e17;
+    --border: #263129;
+    --border-strong: #3a483f;
+    --ink: #eef3ee;
+    --ink-muted: #a7b3a9;
+    --ink-faint: #6f7b71;
+    --accent: #6fe08a;
+    --good: #6fe08a;
+    --warning: #f0b45b;
+    --critical: #f2666a;
+    --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f6f8f6;
+      --surface: #ffffff;
+      --surface-2: #eef2ee;
+      --border: #dbe3dc;
+      --border-strong: #c1cbc3;
+      --ink: #16201a;
+      --ink-muted: #57614f;
+      --ink-faint: #8b988e;
+      --accent: #1f9d4a;
+      --good: #1f9d4a;
+      --warning: #a8660a;
+      --critical: #c23b3f;
+    }
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f6f8f6;
+    --surface: #ffffff;
+    --surface-2: #eef2ee;
+    --border: #dbe3dc;
+    --border-strong: #c1cbc3;
+    --ink: #16201a;
+    --ink-muted: #57614f;
+    --ink-faint: #8b988e;
+    --accent: #1f9d4a;
+    --good: #1f9d4a;
+    --warning: #a8660a;
+    --critical: #c23b3f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    padding: 48px 24px 64px;
+  }
+
+  .page {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 38px);
+    font-weight: 700;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .dek {
+    color: var(--ink-muted);
+    font-size: 15.5px;
+    line-height: 1.65;
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  figure {
+    margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    overflow-x: auto;
+  }
+
+  figure svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-width: 640px;
+  }
+
+  figcaption {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    color: var(--ink-muted);
+    font-size: 14px;
+    line-height: 1.65;
+    max-width: 68ch;
+  }
+
+  figcaption strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .pill {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    padding: 7px 14px;
+    background: var(--surface-2);
+  }
+
+  .stack-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    align-self: center;
+    margin-right: 4px;
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<div class="page">
+  <div>
+    <div class="eyebrow">NoCap</div>
+    <h1>System Architecture</h1>
+    <p class="dek">
+      How a document goes from "just uploaded" to "safe for a chatbot to cite" &mdash;
+      or gets blocked &mdash; with no human between stages.
+    </p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 1000 1160" role="img" aria-label="A document uploaded to NoCap's incoming-uploads storage bucket automatically triggers a Google Cloud Pub/Sub event. Inspector, an autonomous agent running on Gemini, reads the document and reaches one of three verdicts: approved, which publishes it immediately; needs_repair, which routes it through Repair and then Verifier, each triggered by its own Pub/Sub event, before publishing; or quarantined, which blocks it entirely, including once for a live-caught prompt injection attempt scored risk 100. Every stage also writes its verdict to a Supabase audit_log table, which a live dashboard reads.">
+
+      <defs>
+        <marker id="arrow-neutral" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-faint)"></path>
+        </marker>
+        <marker id="arrow-good" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" style="fill:var(--good)"></path>
+        </marker>
+        <marker id="arrow-warning" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" style="fill:var(--warning)"></path>
+        </marker>
+        <marker id="arrow-critical" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" style="fill:var(--critical)"></path>
+        </marker>
+      </defs>
+
+      <text x="500" y="22" text-anchor="middle" style="font-family:var(--font-sans);font-size:12.5px;fill:var(--ink-faint)">Solid = Pub/Sub event or Storage write &nbsp;&middot;&nbsp; Dashed = audit log write</text>
+
+      <!-- Legend -->
+      <g style="font-family:var(--font-sans);font-size:11.5px">
+        <circle cx="702" cy="46" r="5.5" style="fill:var(--good)"></circle>
+        <text x="714" y="50" style="fill:var(--ink-muted)">Approved / passes verification</text>
+        <circle cx="702" cy="68" r="5.5" style="fill:var(--warning)"></circle>
+        <text x="714" y="72" style="fill:var(--ink-muted)">Needs repair / re-checked</text>
+        <circle cx="702" cy="90" r="5.5" style="fill:var(--critical)"></circle>
+        <text x="714" y="94" style="fill:var(--ink-muted)">Quarantined / blocked</text>
+      </g>
+
+      <!-- User -->
+      <circle cx="320" cy="40" r="19" style="fill:var(--surface-2);stroke:var(--border-strong);stroke-width:1.5"></circle>
+      <text x="320" y="44" text-anchor="middle" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink-muted)">USER</text>
+
+      <!-- Spine arrows -->
+      <line x1="320" y1="60" x2="320" y2="108" style="stroke:var(--ink-faint);stroke-width:1.5" marker-end="url(#arrow-neutral)"></line>
+      <text x="332" y="88" style="font-family:var(--font-sans);font-size:11px;fill:var(--ink-faint)">uploads a document</text>
+
+      <!-- Box: incoming-uploads -->
+      <rect x="190" y="112" width="260" height="56" rx="10" style="fill:var(--surface-2);stroke:var(--border-strong);stroke-width:1.5"></rect>
+      <text x="320" y="134" text-anchor="middle" style="font-family:var(--font-mono);font-size:12px;font-weight:600;fill:var(--ink)">STORAGE: incoming-uploads</text>
+      <text x="320" y="152" text-anchor="middle" style="font-family:var(--font-sans);font-size:10.5px;fill:var(--ink-muted)">Supabase Storage bucket</text>
+
+      <line x1="320" y1="168" x2="320" y2="204" style="stroke:var(--ink-faint);stroke-width:1.5" marker-end="url(#arrow-neutral)"></line>
+      <text x="332" y="190" style="font-family:var(--font-sans);font-size:11px;fill:var(--ink-faint)">upload succeeds &rarr; POST /api/ingest</text>
+
+      <!-- Box: ingest.py -->
+      <rect x="190" y="208" width="260" height="56" rx="10" style="fill:var(--surface-2);stroke:var(--border-strong);stroke-width:1.5"></rect>
+      <text x="320" y="230" text-anchor="middle" style="font-family:var(--font-mono);font-size:12px;font-weight:600;fill:var(--ink)">/api/ingest.py</text>
+      <text x="320" y="248" text-anchor="middle" style="font-family:var(--font-sans);font-size:10.5px;fill:var(--ink-muted)">confirms file exists, fires automatically</text>
+
+      <line x1="320" y1="264" x2="320" y2="300" style="stroke:var(--ink-faint);stroke-width:1.5" marker-end="url(#arrow-neutral)"></line>
+      <text x="332" y="286" style="font-family:var(--font-sans);font-size:11px;fill:var(--ink-faint)">publishes event</text>
+
+      <!-- Box: Pub/Sub document-ingested -->
+      <rect x="170" y="304" width="300" height="56" rx="10" style="fill:var(--surface-2);stroke:var(--border-strong);stroke-width:1.5"></rect>
+      <text x="320" y="326" text-anchor="middle" style="font-family:var(--font-mono);font-size:12px;font-weight:600;fill:var(--ink)">PUB/SUB: document-ingested</text>
+      <text x="320" y="344" text-anchor="middle" style="font-family:var(--font-sans);font-size:10.5px;fill:var(--ink-muted)">Google Cloud Pub/Sub topic</text>
+
+      <line x1="320" y1="360" x2="320" y2="396" style="stroke:var(--ink-faint);stroke-width:1.5" marker-end="url(#arrow-neutral)"></line>
+      <text x="332" y="382" style="font-family:var(--font-sans);font-size:11px;fill:var(--ink-faint)">push, OIDC-verified</text>
+
+      <!-- Box: Inspector -->
+      <rect x="170" y="400" width="300" height="64" rx="10" style="fill:var(--surface);stroke:var(--accent);stroke-width:2"></rect>
+      <text x="320" y="426" text-anchor="middle" style="font-family:var(--font-mono);font-size:13px;font-weight:600;fill:var(--ink)">INSPECTOR</text>
+      <text x="320" y="446" text-anchor="middle" style="font-family:var(--font-sans);font-size:10.5px;fill:var(--ink-muted)">Gemini &middot; structured JSON verdict</text>
+
+      <!-- Branches from Inspector -->
+      <line x1="260" y1="464" x2="150" y2="528" style="stroke:var(--good);stroke-width:1.5" marker-end="url(#arrow-good)"></line>
+      <text x="150" y="500" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--good)">approved</text>
+
+      <line x1="320" y1="464" x2="320" y2="528" style="stroke:var(--warning);stroke-width:1.5" marker-end="url(#arrow-warning)"></line>
+      <text x="332" y="500" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--warning)">needs_repair</text>
+
+      <line x1="405" y1="464" x2="600" y2="520" style="stroke:var(--critical);stroke-width:1.5" marker-end="url(#arrow-critical)"></line>
+      <text x="500" y="500" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--critical)">quarantined</text>
+
+      <!-- Leaf: approved -->
+      <rect x="30" y="532" width="220" height="56" rx="10" style="fill:var(--surface-2);stroke:var(--good);stroke-width:1.5"></rect>
+      <text x="140" y="554" text-anchor="middle" style="font-family:var(--font-mono);font-size:11.5px;font-weight:600;fill:var(--ink)">PUBLISH IMMEDIATELY</text>
+      <text x="140" y="572" text-anchor="middle" style="font-family:var(--font-sans);font-size:10px;fill:var(--ink-muted)">no repair or re-check needed</text>
+
+      <!-- Branch: repair-needed -->
+      <rect x="190" y="532" width="260" height="56" rx="10" style="fill:var(--surface-2);stroke:var(--border-strong);stroke-width:1.5"></rect>
+      <text x="320" y="554" text-anchor="middle" style="font-family:var(--font-mono);font-size:12px;font-weight:600;fill:var(--ink)">PUB/SUB: repair-needed</text>
+      <text x="320" y="572" text-anchor="middle" style="font-family:var(--font-sans);font-size:10.5px;fill:var(--ink-muted)">Google Cloud Pub/Sub topic</text>
+
+      <!-- Leaf: quarantined -->
+      <rect x="500" y="524" width="300" height="72" rx="10" style="fill:var(--surface-2);stroke:var(--critical);stroke-width:1.5"></rect>
+      <text x="650" y="548" text-anchor="middle" style="font-family:var(--font-mono);font-size:11.5px;font-weight:600;fill:var(--ink)">BLOCKED &mdash; NEVER PUBLISHED</text>
+      <text x="650" y="566" text-anchor="middle" style="font-family:var(--font-sans);font-size:10px;fill:var(--ink-muted)">e.g. risk score 100 &mdash; a live</text>
+      <text x="650" y="580" text-anchor="middle" style="font-family:var(--font-sans);font-size:10px;fill:var(--ink-muted)">prompt-injection attempt, caught</text>
+
+      <!-- Continue center spine -->
+      <line x1="320" y1="588" x2="320" y2="624" style="stroke:var(--ink-faint);stroke-width:1.5" marker-end="url(#arrow-neutral)"></line>
+      <text x="332" y="610" style="font-family:var(--font-sans);font-size:11px;fill:var(--ink-faint)">publishes event</text>
+
+      <!-- Box: Repair -->
+      <rect x="170" y="624" width="300" height="64" rx="10" style="fill:var(--surface);stroke:var(--border-strong);stroke-width:1.5"></rect>
+      <text x="320" y="650" text-anchor="middle" style="font-family:var(--font-mono);font-size:13px;font-weight:600;fill:var(--ink)">REPAIR</text>
+      <text x="320" y="670" text-anchor="middle" style="font-family:var(--font-sans);font-size:10.5px;fill:var(--ink-muted)">Gemini &middot; rewrites from approved sources only</text>
+
+      <line x1="320" y1="688" x2="320" y2="720" style="stroke:var(--ink-faint);stroke-width:1.5" marker-end="url(#arrow-neutral)"></line>
+      <text x="332" y="708" style="font-family:var(--font-sans);font-size:11px;fill:var(--ink-faint)">publishes event</text>
+
+      <!-- Box: Pub/Sub verification-needed -->
+      <rect x="170" y="724" width="300" height="56" rx="10" style="fill:var(--surface-2);stroke:var(--border-strong);stroke-width:1.5"></rect>
+      <text x="320" y="746" text-anchor="middle" style="font-family:var(--font-mono);font-size:12px;font-weight:600;fill:var(--ink)">PUB/SUB: verification-needed</text>
+      <text x="320" y="764" text-anchor="middle" style="font-family:var(--font-sans);font-size:10.5px;fill:var(--ink-muted)">Google Cloud Pub/Sub topic</text>
+
+      <line x1="320" y1="780" x2="320" y2="816" style="stroke:var(--ink-faint);stroke-width:1.5" marker-end="url(#arrow-neutral)"></line>
+      <text x="332" y="802" style="font-family:var(--font-sans);font-size:11px;fill:var(--ink-faint)">push</text>
+
+      <!-- Box: Verifier -->
+      <rect x="170" y="820" width="300" height="64" rx="10" style="fill:var(--surface);stroke:var(--accent);stroke-width:2"></rect>
+      <text x="320" y="846" text-anchor="middle" style="font-family:var(--font-mono);font-size:13px;font-weight:600;fill:var(--ink)">VERIFIER</text>
+      <text x="320" y="866" text-anchor="middle" style="font-family:var(--font-sans);font-size:10.5px;fill:var(--ink-muted)">Gemini &middot; won't rubber-stamp a repair</text>
+
+      <!-- Branches from Verifier -->
+      <line x1="260" y1="884" x2="210" y2="948" style="stroke:var(--good);stroke-width:1.5" marker-end="url(#arrow-good)"></line>
+      <text x="215" y="920" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--good)">passes</text>
+
+      <line x1="385" y1="884" x2="430" y2="948" style="stroke:var(--warning);stroke-width:1.5" marker-end="url(#arrow-warning)"></line>
+      <text x="440" y="920" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--warning)">remaining_issues</text>
+
+      <!-- Leaf: passes -->
+      <rect x="100" y="952" width="220" height="56" rx="10" style="fill:var(--surface-2);stroke:var(--good);stroke-width:1.5"></rect>
+      <text x="210" y="974" text-anchor="middle" style="font-family:var(--font-mono);font-size:11.5px;font-weight:600;fill:var(--ink)">PASSES RE-CHECK</text>
+      <text x="210" y="992" text-anchor="middle" style="font-family:var(--font-sans);font-size:10px;fill:var(--ink-muted)">repaired text confirmed accurate</text>
+
+      <!-- Leaf: remaining issues -->
+      <rect x="300" y="952" width="260" height="64" rx="10" style="fill:var(--surface-2);stroke:var(--warning);stroke-width:1.5"></rect>
+      <text x="430" y="976" text-anchor="middle" style="font-family:var(--font-mono);font-size:11.5px;font-weight:600;fill:var(--ink)">STAYS UNPUBLISHED</text>
+      <text x="430" y="994" text-anchor="middle" style="font-family:var(--font-sans);font-size:10px;fill:var(--ink-muted)">remaining_issues logged,</text>
+      <text x="430" y="1006" text-anchor="middle" style="font-family:var(--font-sans);font-size:10px;fill:var(--ink-muted)">stays in repaired/</text>
+
+      <!-- Converging arrows to Published -->
+      <line x1="140" y1="588" x2="140" y2="1044" style="stroke:var(--good);stroke-width:1.5" marker-end="url(#arrow-good)"></line>
+      <line x1="210" y1="1008" x2="210" y2="1044" style="stroke:var(--good);stroke-width:1.5" marker-end="url(#arrow-good)"></line>
+
+      <!-- Merge box: published -->
+      <rect x="100" y="1048" width="340" height="64" rx="10" style="fill:var(--surface);stroke:var(--good);stroke-width:2"></rect>
+      <text x="270" y="1074" text-anchor="middle" style="font-family:var(--font-mono);font-size:12.5px;font-weight:600;fill:var(--ink)">STORAGE: pipeline-output/published/</text>
+      <text x="270" y="1094" text-anchor="middle" style="font-family:var(--font-sans);font-size:10.5px;fill:var(--ink-muted)">the chatbot may now cite this document</text>
+
+      <!-- Audit lane: dashed connectors -->
+      <line x1="470" y1="428" x2="688" y2="644" style="stroke:var(--ink-faint);stroke-width:1.25;stroke-dasharray:4 4" marker-end="url(#arrow-neutral)"></line>
+      <line x1="470" y1="656" x2="688" y2="656" style="stroke:var(--ink-faint);stroke-width:1.25;stroke-dasharray:4 4" marker-end="url(#arrow-neutral)"></line>
+      <line x1="470" y1="848" x2="688" y2="668" style="stroke:var(--ink-faint);stroke-width:1.25;stroke-dasharray:4 4" marker-end="url(#arrow-neutral)"></line>
+
+      <!-- Box: audit_log -->
+      <rect x="690" y="628" width="220" height="56" rx="10" style="fill:var(--surface-2);stroke:var(--border-strong);stroke-width:1.5"></rect>
+      <text x="800" y="650" text-anchor="middle" style="font-family:var(--font-mono);font-size:12px;font-weight:600;fill:var(--ink)">SUPABASE: audit_log</text>
+      <text x="800" y="668" text-anchor="middle" style="font-family:var(--font-sans);font-size:10.5px;fill:var(--ink-muted)">every stage writes its verdict here</text>
+
+      <line x1="800" y1="628" x2="800" y2="316" style="stroke:var(--ink-faint);stroke-width:1.5" marker-end="url(#arrow-neutral)"></line>
+      <text x="812" y="480" style="font-family:var(--font-sans);font-size:11px;fill:var(--ink-faint)">reads live</text>
+
+      <!-- Box: Dashboard -->
+      <rect x="670" y="250" width="260" height="60" rx="10" style="fill:var(--surface-2);stroke:var(--border-strong);stroke-width:1.5"></rect>
+      <text x="800" y="274" text-anchor="middle" style="font-family:var(--font-mono);font-size:12px;font-weight:600;fill:var(--ink)">DASHBOARD</text>
+      <text x="800" y="292" text-anchor="middle" style="font-family:var(--font-sans);font-size:10.5px;fill:var(--ink-muted)">live audit trail + RAG chat, on Vercel</text>
+
+    </svg>
+
+    <figcaption>
+      <strong>Every solid arrow is a real Pub/Sub event or a Storage write, not a function call.</strong>
+      Inspector, Repair, and Verifier each run as independent Vercel functions triggered by push
+      subscriptions, so no human sits between stages &mdash; not even to kick off the first step, since
+      uploading a document now fires that event automatically. Dashed arrows show every stage also
+      writing to a live audit trail, which the dashboard reads in real time.
+    </figcaption>
+  </figure>
+
+  <div class="stack">
+    <span class="stack-label">Built with</span>
+    <span class="pill">Gemini &middot; google-genai SDK</span>
+    <span class="pill">Google Cloud Pub/Sub</span>
+    <span class="pill">Supabase</span>
+    <span class="pill">Vercel</span>
+  </div>
+</div>

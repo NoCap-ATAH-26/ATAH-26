@@ -95,6 +95,22 @@ npm run dev
 
 Needs its own `.env.local`, see `docs/CHAT_SETUP.md` for the chat layer's free model options.
 
+## See it live, no login
+
+```
+https://atah-26-topaz.vercel.app/demo
+```
+
+Every row is a real Inspector, Repair, or Verifier decision, read straight from the same Supabase `audit_log` table the pipeline itself writes to, live. No account needed.
+
+## Run the demo yourself
+
+```
+python backend/run_demo.py
+```
+
+One command, processes the ten canonical documents end to end (Inspector, then Repair and Verifier where needed) and prints a summary: how many were approved, repaired, or quarantined, and why, including the prompt injection catch. Free-tier Gemini rate limits make this take a few minutes; pass `--fast` if you're on a paid tier.
+
 ## Where things stand
 
-Inspector, Repair, and Verifier all run and have been proven against real files, including a real adversarial input. The dashboard and chat are live. Cloud Run deployment and the live Pub/Sub topic setup are the remaining piece before the full event driven loop runs unattended in production instead of locally.
+Inspector, Repair, and Verifier all run and are proven against real files, including a real adversarial input, both locally and as a fully unattended production deployment. Google Cloud Pub/Sub is live: three topics, both a local pull-based consumer (`orchestrator.py`) and Vercel push functions that run the pipeline with no laptop process required. Uploading a document through the dashboard triggers the whole chain automatically, nothing manual between "file uploaded" and "verdict reached." Cloud Run itself was attempted and deliberately dropped (no billing account, and Pub/Sub alone already satisfies the Google Cloud infrastructure requirement); the Vercel push pipeline replaces it at zero additional cost.

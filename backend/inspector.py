@@ -16,6 +16,7 @@ Usage:
 import argparse
 import json
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -40,6 +41,7 @@ BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BACKEND_DIR.parent
 APPROVED_SOURCES_DIR = PROJECT_ROOT / "approved_sources"
 INCOMING_DOCUMENTS_DIR = PROJECT_ROOT / "incoming_docs"
+PUBLISHED_DOCUMENTS_DIR = PROJECT_ROOT / "published_documents"
 
 VALID_STATUSES = {"approved", "needs_repair", "quarantined"}
 
@@ -164,6 +166,21 @@ def inspect_document(file_name: str, client: genai.Client, sources: dict[str, st
         raise ValueError(
             f"Inspector cited unknown source file(s) for {file_name}: {unknown_sources}"
         )
+
+    # An already-correct document doesn't need Repair or Verifier, publish it
+    # as-is (mirrors frontend/api/_lib/inspector.py, which already does this
+    # for the deployed path -- this local path was missing both the publish
+    # and the audit_log write until now).
+    result["published_path"] = None
+    if result["status"] == "approved":
+        PUBLISHED_DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
+        published_path = PUBLISHED_DOCUMENTS_DIR / file_name
+        shutil.copyfile(incoming_path, published_path)
+        result["published_path"] = str(published_path.relative_to(PROJECT_ROOT))
+
+    import audit_log
+
+    audit_log.log_event(file_name, "inspector", result)
 
     return result
 
