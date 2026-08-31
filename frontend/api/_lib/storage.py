@@ -51,6 +51,16 @@ def read_incoming(file_name: str) -> bytes:
     return client.storage.from_(INCOMING_BUCKET).download(file_name)
 
 
+def incoming_exists(file_name: str) -> bool:
+    """Cheap existence check (list, not download) used by api/ingest.py to
+    confirm a file was actually uploaded before publishing an ingest event
+    for it, so the endpoint can't be used to spam the pipeline with names
+    that were never written to the bucket."""
+    client = _get_client()
+    objects = client.storage.from_(INCOMING_BUCKET).list()
+    return any(obj.get("name") == file_name for obj in objects)
+
+
 def read_repaired(file_name: str) -> str | None:
     """Returns the repaired text, or None if no repair exists yet (mirrors
     the local version's `if not repaired_path.exists()` check)."""

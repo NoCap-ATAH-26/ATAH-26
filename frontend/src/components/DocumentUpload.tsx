@@ -67,6 +67,18 @@ export function DocumentUpload() {
               : it
           )
         );
+
+        // Kicks off the autonomous pipeline for this file. Upload succeeding
+        // is what matters for the UI status above — this is fire-and-forget,
+        // so a hiccup here doesn't mark an otherwise-successful upload as
+        // failed. The watcher poll still exists as a fallback.
+        if (!error) {
+          fetch("/api/ingest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file_name: file.name }),
+          }).catch(() => {});
+        }
       })
     );
   }
@@ -171,8 +183,8 @@ export function DocumentUpload() {
       )}
 
       <p className="mt-3 text-[11px] text-ink-faint">
-        Uploaded files are picked up by the pipeline within a few seconds of the
-        watcher&rsquo;s next poll.
+        Uploaded files start the pipeline automatically, no manual trigger
+        needed.
       </p>
     </GlowCard>
   );

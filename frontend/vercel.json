@@ -3,6 +3,10 @@
     "api/pubsub/*.py": {
       "maxDuration": 60,
       "includeFiles": "api/_lib/**"
+    },
+    "api/ingest.py": {
+      "maxDuration": 30,
+      "includeFiles": "api/_lib/**"
     }
   }
 }
